@@ -8,7 +8,7 @@ function _update()
 	local _dir=get_dir()
 	if _dir!=nil then
 		player=move_mob(player,_dir)
-	end	
+	end
 end
 
 function _draw()
@@ -16,9 +16,7 @@ function _draw()
 	map()
 	foreach(mobs,draw_mob)
 	
-	--debug
-	color(8)
-	foreach(debug,print)
+	draw_debug()
 end
 -->8
 --initialize
@@ -50,6 +48,7 @@ end
 function is_tile(_pos,_flag)
 	return fget(mget(_pos.x,_pos.y),_flag)
 end
+
 	
 -->8
 
@@ -97,20 +96,33 @@ end
 --tools
 
 function vector2(_x,_y)
-	v={x=_x,y=_y}
-	return v
+	local _v={x=_x,y=_y}
+	return _v
 end
 
-function addvectors(v1,v2)
-	return vector2(v1.x+v2.x,
-																v1.y+v2.y)
+function addvectors(_v1,_v2)
+	return vector2(_v1.x+_v2.x,
+																_v1.y+_v2.y)
 end
 
-function distance(_pos,_tpos)
-	a=_pos.y-_pos.x
-	b=_tpos.y-_tpos.x
-	dist=sqrt((a^2)+(b^2))
-	return dist
+function distance(_v1,_v2)
+	local _a=_v1.x-_v2.x
+	local _b=_v1.y-_v2.y
+	local _dist=sqrt((_a^2)+(_b^2))
+	return _dist
+end
+
+function tdistance(_pos,_tpos)
+	return -flr(-distance(_pos,_tpos))
+end
+
+function draw_debug()
+	local i=0
+	foreach(debug,function(a)
+  rectfill(37,i*6,127,(i+1)*6,0) 
+  print(a,38,i*6,11)  
+  i+=1 
+ end)
 end
 __gfx__
 00000000000000006660666066666660666066606660666000666660666660000000000000000000000000000000000000000000000000000000000000000000
