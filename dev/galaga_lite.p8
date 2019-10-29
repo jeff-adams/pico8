@@ -8,7 +8,7 @@ function _init()
 	-- initialize game
 	ustate=ustate_start
 	dstate=dstate_menu
-	setcolorenums()
+	-- create player
 	player={}
 	player.sprite={192,193,194}
 	player.pos={}
@@ -68,9 +68,7 @@ end
 -->8
 -- tools
 
-function setcolorenums()
-	black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,orange,yellow,green,blue,indigo,pink,peach=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
-end
+
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
