@@ -6,63 +6,149 @@ __lua__
 
 function _init()
 	cls()
-	lab=randomize_lab()
+	--for debug
+	x,y=1,1
+	
+	free_tile=16
+	lab=setup_lab()
 end
 
 function _update()
-
+	--for debug
+	if btnp(⬆️) then y-=1 end
+	if btnp(⬇️) then y+=1 end
+	if btnp(⬅️) then x-=1 end
+	if btnp(➡️) then x+=1 end
 end
 
 function _draw()
 	cls()
 	draw_borders()
-	map()
-	draw_lab(8,8)
-	spr(5,16,16)
+	draw_lab(8)
+	
+	--for debug
+	print_spr()
+	spr(5,x*8,y*8)
 end
 
 function draw_borders()
 	color(5)
 	rect(0,0,90,90)
-	--rect(92,0,127,12)
-	--rect(0,101,127,127)
 end
 
-function draw_lab(_x,_y)
-	for i=1,9 do
-		local _tile=lab[i]
-	end	
+function draw_lab(_origin)
+	for _row=1,9 do
+		for _col=1,9 do
+			local _tile=lab[_row][_col]
+			spr(_tile,_origin*_row,_origin*_col)
+		end
+	end
+end
+
+--for debug
+function print_spr()
+	local _spr=lab[x][y] or "nil"
+	print(_spr.." @ "..x..","..y,50,80,9)
 end
 -->8
---labrynth setup
+--setup
 
-function randomize_lab()
-	local _lab={}
+function setup_lab()
+	local _lab=initial_lab()
+	local _tiles={}
 	--add 13 straight tiles (spr 33-36)
-	add(_lab,add_tiles(33,13))
+	_tiles=add_tiles(33,13,_tiles)
 	--add 9 corner tiles (spr 17-20)
-	add(_lab,add_tiles(17,9))
+	_tiles=add_tiles(17,9,_tiles)
 	--add 12 t tiles (spr 49-52)
-	add(_lab,add_tiles(49,12))
-	_lab=shuffle_tiles(_lab)
+	_tiles=add_tiles(49,12,_tiles)
+	_tiles=shuffle_tiles(_tiles)
+	--place the shuffled tiles and
+	--get back the extra tile
+	_lab,free_tile=place_tiles(_lab,_tiles)
 	return _lab
 end
 
-function add_tiles(_sprite,_count)
-	local _tiles={}
+--returns a 2d array
+function initial_lab()
+	local _lab={}
+	local _index=1	
+	for _x=0,8 do
+		local _row={}
+		for _y=0,8 do
+			local _i=place_indicator(_x,_y)
+			if _i==nil then 
+				_i=place_default_tile(_x,_y,_index) 
+				if _i==nil then
+					_i=16
+				else 
+					_index+=1
+				end	
+			end	
+			add(_row,_i)
+		end
+		add(_lab,_row)
+	end
+	return _lab
+end
+
+function place_indicator(_x,_y)
+	--down
+	if _y==0 and mid(1,_x,7)%2==0 then return 1 end
+	--left
+	if _x==8 and mid(1,_y,7)%2==0 then return 2 end
+	--up
+	if _y==8 and mid(1,_x,7)%2==0 then return 3 end
+	--right
+	if _x==0 and mid(1,_y,7)%2==0 then return 4 end
+	--not an indicator
+	return nil
+end
+
+function place_default_tile(_x,_y,_index)
+	local _tiles={17,49,49,20,50,49,52,52,50,50,51,52,18,51,51,19}
+	--inside spaces
+	if is_inside_space(_x,_y) then 
+		 if _x%2==1 and _y%2==1 then
+		 	return _tiles[_index]
+		 end
+	end
+	return nil
+end
+
+function add_tiles(_spr,_count,_tiles)
 	for i=1,_count do
-		add(_tiles,flr(rnd(4)+_sprite))
+		add(_tiles,flr(rnd(4)+_spr))
 	end
 	return _tiles
 end
 
 function shuffle_tiles(_tiles)
-print(#_tiles,10,10)
 	for i=#_tiles, 2, -1 do
   local j=flr(rnd(i))
   _tiles[i],_tiles[j]=_tiles[j],_tiles[i]
  end
 	return _tiles
+end
+
+function place_tiles(_lab,_tiles)
+	--place tiles on empty spots
+	local _tindex=1
+	for i=1,#_lab do
+		for j=1,#_lab[i] do
+			if is_inside_space(i-1,j-1) then
+				if _lab[i][j]==16 then
+					_lab[i][j]=_tiles[_tindex]
+					_tindex+=1
+				end
+			end
+		end
+	end
+	return _lab,_tiles[_tindex]
+end
+
+function is_inside_space(_x,_y)
+	return _x==mid(1,_x,7) and _y==mid(1,_y,7)
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
