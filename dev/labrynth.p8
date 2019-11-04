@@ -6,52 +6,112 @@ __lua__
 
 function _init()
 	cls()
-	--for debug
-	x,y=1,1
-	
-	free_tile=16
+	setup_vars()
+	--labrynth setup
+	free_tile={sprite=16,x=3,y=1}
 	lab=setup_lab()
+	--player setup
+	players=player_setup()
+	cplayer=players[1]
 end
 
 function _update()
-	--for debug
-	if btnp(⬆️) then y-=1 end
-	if btnp(⬇️) then y+=1 end
-	if btnp(⬅️) then x-=1 end
-	if btnp(➡️) then x+=1 end
+	update()
 end
 
 function _draw()
 	cls()
 	draw_borders()
-	draw_lab(8)
+	draw_lab()
+	draw_sprite(free_tile)
+	foreach(players,draw_sprite)
 	
-	--for debug
-	print_spr()
-	spr(5,x*8,y*8)
-end
+	print("player "..(cplayer.sprite-4).." turn",30,80,9)
+end	
 
 function draw_borders()
 	color(5)
-	rect(0,0,90,90)
+	rect(origin,origin,origin+90,origin+90)
 end
 
-function draw_lab(_origin)
+function draw_lab()
 	for _row=1,9 do
 		for _col=1,9 do
 			local _tile=lab[_row][_col]
-			spr(_tile,_origin*_row,_origin*_col)
+			spr(_tile,origin+8*_row,origin+8*_col)
 		end
 	end
 end
 
---for debug
-function print_spr()
-	local _spr=lab[x][y] or "nil"
-	print(_spr.." @ "..x..","..y,50,80,9)
+function draw_sprite(_sprite)
+	local _x,_y=_sprite.x*8+origin,_sprite.y*8+origin
+	spr(_sprite.sprite,_x,_y)
+end
+
+function tile_placement()
+	if btnp(❎) then 
+		free_tile.sprite=rotate_tile(free_tile.sprite)
+		sfx(0)
+	end
+	if btnp(🅾️) then
+		--push tile in
+		push_tile()
+		update=player_movement
+		sfx(2)
+	end
+	if btnp(⬅️) then 
+		free_tile=move_tile(free_tile,left) 
+		sfx(1)
+	end
+	if btnp(➡️) then 
+		free_tile=move_tile(free_tile,right)
+		sfx(1) 
+	end
+	if btnp(⬆️) then 
+		free_tile=move_tile(free_tile,up) 
+		sfx(1)
+	end
+	if btnp(⬇️) then 
+		free_tile=move_tile(free_tile,down) 
+		sfx(1)
+	end
+end
+
+function player_movement()
+	if btnp(❎) then
+		cplayer=next_player(players,cplayer) 
+		update=tile_placement
+		sfx(3)
+	end
+	if btnp(⬅️) then 
+		cplayer.x-=1
+		sfx(1)
+	end
+	if btnp(➡️) then 
+		cplayer.x+=1
+		sfx(1) 
+	end
+	if btnp(⬆️) then 
+		cplayer.y-=1
+		sfx(1)
+	end
+	if btnp(⬇️) then 
+		cplayer.y+=1
+		sfx(1)
+	end
 end
 -->8
 --setup
+
+function setup_vars()
+	origin=0
+	up={0,-1}
+	down={0,1}
+	right={1,0}
+	left={-1,0}
+	
+	update=tile_placement
+end
 
 function setup_lab()
 	local _lab=initial_lab()
@@ -65,7 +125,7 @@ function setup_lab()
 	_tiles=shuffle_tiles(_tiles)
 	--place the shuffled tiles and
 	--get back the extra tile
-	_lab,free_tile=place_tiles(_lab,_tiles)
+	_lab,free_tile.sprite=place_tiles(_lab,_tiles)
 	return _lab
 end
 
@@ -125,7 +185,7 @@ end
 
 function shuffle_tiles(_tiles)
 	for i=#_tiles, 2, -1 do
-  local j=flr(rnd(i))
+  local j=max(flr(rnd(i)),1)
   _tiles[i],_tiles[j]=_tiles[j],_tiles[i]
  end
 	return _tiles
@@ -150,13 +210,72 @@ end
 function is_inside_space(_x,_y)
 	return _x==mid(1,_x,7) and _y==mid(1,_y,7)
 end
+
+function player_setup()
+	local _players={}
+	local _p1={sprite=5,x=2,y=2}
+	add(_players,_p1)
+	local _p2={sprite=6,x=8,y=8}
+	add(_players,_p2)
+	return _players
+end
+-->8
+--logic
+
+function rotate_tile(_sprite)
+	if _sprite%4==0 then
+		_sprite-=3
+	else	
+		_sprite+=1
+	end
+	return _sprite
+end
+
+function move_tile(_spr,_dir)
+	local _destx,_desty=_dir[1]*2,_dir[2]*2
+	--on top/bottom
+	_spr.x,_spr.y=tile_limit(_spr.x,_spr.y,_destx)
+	--on left/right
+	_spr.y,_spr.x=tile_limit(_spr.y,_spr.x,_desty)
+	return _spr
+end
+
+function tile_limit(_a,_b,_dest)
+	if _b==1 or _b==9 then
+		_a=mid(1,_a+_dest,9)
+		if _a==1 or _a==9 then
+			_b=_b==1 and 3 or 7
+		end
+	end
+	return _a,_b
+end
+
+function next_player(_players,_cplayer)
+	--returns next in table, circular
+	local _key=nil
+	for k,v in pairs(_players) do
+  if v==_cplayer then _key=k end
+ end
+	local _x,_nplayer=next(_players,_key)
+	--_nplayer will be nil if its the last in the table
+	return _nplayer and _nplayer or _players[1]
+end
+
+function push_tile()
+	--get location of free_tile
+	local _x,_y=free_tile.x,free_tile.y
+	--find out which way it's pushing
+	
+	--shift tiles in each row or column
+	--reassign free_tile
+end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000000000000a0000000a00000000a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-007007000000000000aa000000aaa0000000aa0000088000000cc000000bb000000ee00000000000000000000000000000000000000000000000000000000000
-00077000000000000aaa00000aaaaa000000aaa00088880000cccc0000bbbb0000eeee0000000000000000000000000000000000000000000000000000000000
-000770000aaaaa0000aa0000000000000000aa000088880000cccc0000bbbb0000eeee0000000000000000000000000000000000000000000000000000000000
-0070070000aaa000000a0000000000000000a00000088000000cc000000bb000000ee00000000000000000000000000000000000000000000000000000000000
+0000000000000000000a0000000a00000000a00000080000000c0000000b0000000e000000000000000000000000000000000000000000000000000000000000
+007007000000000000aa000000aaa0000000aa000088800000ccc00000bbb00000eee00000000000000000000000000000000000000000000000000000000000
+00077000000000000aaa00000aaaaa000000aaa000080000000c0000000b0000000e000000000000000000000000000000000000000000000000000000000000
+000770000aaaaa0000aa0000000000000000aa000080800000c0c00000b0b00000e0e00000000000000000000000000000000000000000000000000000000000
+0070070000aaa000000a0000000000000000a0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000555555505555555055666550556665500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -193,3 +312,8 @@ __map__
 0004000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000140034003400130000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000300030003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+__sfx__
+000600001762017620206200060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
+000600000d1400d140071400714000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100
+000600001f1501f15019150191501f1501f1501c1501c150151501515015150151501015010150101501015000100001000010000100001000010000100001000010000100001000010000100001000010000100
+000400000645004450014500040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400
