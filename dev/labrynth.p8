@@ -26,7 +26,7 @@ function _draw()
 	draw_sprite(free_tile)
 	foreach(players,draw_sprite)
 	
-	print("player "..(cplayer.sprite-4).." turn",30,80,9)
+	print("tile: "..free_tile.x..","..free_tile.y,2,80,9)
 end	
 
 function draw_borders()
@@ -109,6 +109,7 @@ function setup_vars()
 	down={0,1}
 	right={1,0}
 	left={-1,0}
+	invalid_space={x=0,y=0}
 	
 	update=tile_placement
 end
@@ -237,6 +238,11 @@ function move_tile(_spr,_dir)
 	_spr.x,_spr.y=tile_limit(_spr.x,_spr.y,_destx)
 	--on left/right
 	_spr.y,_spr.x=tile_limit(_spr.y,_spr.x,_desty)
+	--moves tile past the invalid space
+	--★ can get stuck depending on dir
+	if same_space(_spr,invalid_space) then
+		return move_tile(_spr,_dir)
+	end
 	return _spr
 end
 
@@ -263,11 +269,44 @@ end
 
 function push_tile()
 	--get location of free_tile
-	local _x,_y=free_tile.x,free_tile.y
+	local _x,_y,_ttile=free_tile.x,free_tile.y,free_tile
+	local _row,_column=lab[_y],{}
+		for j=1,7 do
+			add(_column,lab[j][_x])
+		end
 	--find out which way it's pushing
-	
-	--shift tiles in each row or column
+	if _x==1 then
+		--push right
+		for i=1,#_row-1 do
+			_row[i],_ttile=_ttile,_row[i+1]
+		end
+		invalid_space={x=7,y=_y}
+	elseif _x==7 then
+		--push left
+		for i=#_row,2,-1 do
+			_row[i],_ttile=_ttile,_row[i-1]
+		end
+		invalid_space={x=1,y=_y}
+	elseif _y==1 then
+		--push down
+		
+		invalid_space={x=_x,y=7}
+	elseif _y==7 then
+		--push up
+		
+		invalid_space={x=_x,y=1}
+	end
+	--change the labrynth
+	lab[_y]=_row
+	for j=1,7 do
+		lab[_y][j]=_column[j]
+	end
 	--reassign free_tile
+	free_tile={sprite=_ttile,x=invalid_space.x,y=invalid_space.y}
+end
+
+function same_space(_a,_b)
+	return _a.x==_b.x and _a.y==_b.y
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
