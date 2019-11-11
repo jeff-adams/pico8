@@ -27,11 +27,12 @@ function _draw()
 		foreach(row,draw_tile)
 	end
 	draw_tile(free_tile)
+	--draw players
 	foreach(players,draw_tile)
 
 	--debug
-	print(cplayer.x..","..cplayer.y,60,80,9)
-	spr(lab[cplayer.x][cplayer.y].sprite,80,80)
+	print(free_tile.x..","..free_tile.y,60,80,9)
+	--spr(lab[cplayer.x][cplayer.y].sprite,80,80)
 end	
 
 function draw_borders()
@@ -84,7 +85,7 @@ function tile_placement()
 end
 
 function player_movement()
-	if btnp(❎) then
+	if btnp(🅾️) then
 		cplayer=next_player(players,cplayer) 
 		update=tile_placement
 		sfx(3)
@@ -111,10 +112,10 @@ end
 
 function setup_vars()
 	origin=0
-	up={0,-1}
-	down={0,1}
-	right={1,0}
-	left={-1,0}
+	up={x=0,y=-1}
+	down={x=0,y=1}
+	right={x=1,y=0}
+	left={x=-1,y=0}
 	invalid_space={x=0,y=0}
 	
 	update=tile_placement
@@ -195,9 +196,9 @@ end
 
 function shuffle_tiles(_tiles)
 	for i=#_tiles, 2, -1 do
-  local j=max(flr(rnd(i)),1)
-  _tiles[i],_tiles[j]=_tiles[j],_tiles[i]
- end
+  		local j=max(flr(rnd(i)),1)
+  		_tiles[i],_tiles[j]=_tiles[j],_tiles[i]
+ 	end
 	return _tiles
 end
 
@@ -218,10 +219,6 @@ function place_tiles(_lab,_tiles)
 	return _lab,_tiles[_tindex]
 end
 
-function is_inside_space(_x,_y)
-	return _x==mid(2,_x,8) and _y==mid(2,_y,8)
-end
-
 function player_setup()
 	local _players={}
 	local _p1={sprite=5,x=2,y=2}
@@ -233,6 +230,10 @@ end
 -->8
 --logic
 
+function is_inside_space(_x,_y)
+	return _x==mid(2,_x,8) and _y==mid(2,_y,8)
+end
+
 function rotate_tile(_sprite)
 	if _sprite%4==0 then
 		_sprite-=3
@@ -243,13 +244,20 @@ function rotate_tile(_sprite)
 end
 
 function move_freetile(_spr,_dir)
-	local _destx,_desty=_dir[1]*2,_dir[2]*2
-	--on top/bottom
-	_spr.x,_spr.y=tile_limit(_spr.x,_spr.y,_destx)
-	--on left/right
-	_spr.y,_spr.x=tile_limit(_spr.y,_spr.x,_desty)
-	--moves tile past the invalid space
-	--★ can get stuck depending on dir
+	local _destx,_desty=_dir.x*2,_dir.y*2
+	if(abs(_dir.x)>0) then
+		_spr.x,_spr.y=tile_limit(_spr.x,_spr.y,_destx)
+		if same_space(_spr,invalid_space) then
+			--only works for top/right, bottom/left corners
+			_spr.y,_spr.x=tile_limit(_spr.y,_spr.x,_destx)
+		end
+	end
+	if(abs(_dir.y)>0) then
+		_spr.y,_spr.x=tile_limit(_spr.y,_spr.x,_desty)
+		if same_space(_spr,invalid_space) then
+			_spr.x,_spr.y=tile_limit(_spr.x,_spr.y,_desty)
+		end
+	end
 	if same_space(_spr,invalid_space) then
 		return move_freetile(_spr,_dir)
 	end
@@ -326,8 +334,8 @@ function push_tiles()
 end
 
 function move_direction(_obj,_dir)
-	_obj.x+=_dir[1]
-	_obj.y+=_dir[2]
+	_obj.x+=_dir.x
+	_obj.y+=_dir.y
 	return _obj
 end
 
