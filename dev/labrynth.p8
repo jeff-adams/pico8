@@ -22,11 +22,12 @@ end
 function _draw()
 	cls()
 	draw_borders()
-	draw_lab()
-	draw_sprite(free_tile)
-	foreach(players,draw_sprite)
-	
-	print("tile: "..free_tile.x..","..free_tile.y,2,80,9)
+	--draw_lab()
+	for row in all(lab) do
+		foreach(row,draw_tile)
+	end
+	draw_tile(free_tile)
+	foreach(players,draw_tile)
 end	
 
 function draw_borders()
@@ -43,13 +44,18 @@ function draw_lab()
 	end
 end
 
-function draw_sprite(_sprite)
-	local _x,_y=_sprite.x*8+origin,_sprite.y*8+origin
-	spr(_sprite.sprite,_x,_y)
+function draw_tile(_tile)
+	if _tile.x==nil then 
+		print("nil",80,80,9)
+	else
+		local _x,_y=_tile.x*8+origin,_tile.y*8+origin
+		spr(_tile.sprite,_x,_y)
+	end
 end
 
 function tile_placement()
 	if btnp(❎) then 
+		--rotate tile
 		free_tile.sprite=rotate_tile(free_tile.sprite)
 		sfx(0)
 	end
@@ -130,7 +136,8 @@ function setup_lab()
 	return _lab
 end
 
---returns a 2d array
+--returns a 2d array of tiles
+--tiles are an array of sprite, x, and y
 function initial_lab()
 	local _lab={}
 	local _index=1	
@@ -145,8 +152,9 @@ function initial_lab()
 				else 
 					_index+=1
 				end	
-			end	
-			add(_row,_i)
+			end
+			local _tile={sprite=_i,x=_x,y=_y}	
+			add(_row,_tile)
 		end
 		add(_lab,_row)
 	end
@@ -167,6 +175,7 @@ function place_indicator(_x,_y)
 end
 
 function place_default_tile(_x,_y,_index)
+	--default tile sequence
 	local _tiles={17,49,49,20,50,49,52,52,50,50,51,52,18,51,51,19}
 	--inside spaces
 	if is_inside_space(_x,_y) then 
@@ -198,8 +207,9 @@ function place_tiles(_lab,_tiles)
 	for i=1,#_lab do
 		for j=1,#_lab[i] do
 			if is_inside_space(i-1,j-1) then
-				if _lab[i][j]==16 then
-					_lab[i][j]=_tiles[_tindex]
+				local _tile=_lab[i][j]
+				if _tile.sprite==16 then
+					_lab[i][j]={sprite=_tiles[_tindex],x=i,y=j}
 					_tindex+=1
 				end
 			end
@@ -260,9 +270,9 @@ function next_player(_players,_cplayer)
 	--returns next in table, circular
 	local _key=nil
 	for k,v in pairs(_players) do
-  if v==_cplayer then _key=k end
- end
-	local _x,_nplayer=next(_players,_key)
+  		if v==_cplayer then _key=k end
+ 	end
+	local _,_nplayer=next(_players,_key)
 	--_nplayer will be nil if its the last in the table
 	return _nplayer and _nplayer or _players[1]
 end
