@@ -29,10 +29,8 @@ function _draw()
 	draw_tile(free_tile)
 	--draw players
 	foreach(players,draw_tile)
-
-	--debug
-	print(free_tile.x..","..free_tile.y,60,80,9)
-	--spr(lab[cplayer.x][cplayer.y].sprite,80,80)
+	--draw text
+	draw_instructions()
 end	
 
 function draw_borders()
@@ -54,7 +52,18 @@ function draw_tile(_tile)
 	spr(_tile.sprite,_x,_y)
 end
 
+function draw_instructions()
+	cursor(origin+4,origin+94)
+	color(9)
+	print("player "..(cplayer.sprite-4).."'s turn")
+	print("------------------")
+	foreach(instructions, print)
+	color()
+end
+
 function tile_placement()
+	instructions[1]="❎: rotate tile"
+	instructions[2]="🅾️: shift labrynth"
 	if btnp(❎) then 
 		--rotate tile
 		free_tile.sprite=rotate_tile(free_tile.sprite)
@@ -85,7 +94,9 @@ function tile_placement()
 end
 
 function player_movement()
-	if btnp(🅾️) then
+	instructions[1]="❎: end turn"
+	instructions[2]=nil
+	if btnp(❎) then
 		cplayer=next_player(players,cplayer) 
 		update=tile_placement
 		sfx(3)
@@ -111,7 +122,7 @@ end
 --setup
 
 function setup_vars()
-	origin=0
+	origin=2
 	up={x=0,y=-1}
 	down={x=0,y=1}
 	right={x=1,y=0}
@@ -119,6 +130,7 @@ function setup_vars()
 	invalid_space={x=0,y=0}
 	
 	update=tile_placement
+	instructions={}
 end
 
 function setup_lab()
