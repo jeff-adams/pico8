@@ -22,12 +22,16 @@ end
 function _draw()
 	cls()
 	draw_borders()
-	--draw_lab()
+	--draw labrynth
 	for row in all(lab) do
 		foreach(row,draw_tile)
 	end
 	draw_tile(free_tile)
 	foreach(players,draw_tile)
+
+	--debug
+	print(cplayer.x..","..cplayer.y,60,80,9)
+	spr(lab[cplayer.x][cplayer.y].sprite,80,80)
 end	
 
 function draw_borders()
@@ -57,24 +61,24 @@ function tile_placement()
 	end
 	if btnp(🅾️) then
 		--push tile in
-		push_tile()
+		push_tiles()
 		update=player_movement
 		sfx(2)
 	end
 	if btnp(⬅️) then 
-		free_tile=move_tile(free_tile,left) 
+		free_tile=move_freetile(free_tile,left) 
 		sfx(1)
 	end
 	if btnp(➡️) then 
-		free_tile=move_tile(free_tile,right)
+		free_tile=move_freetile(free_tile,right)
 		sfx(1) 
 	end
 	if btnp(⬆️) then 
-		free_tile=move_tile(free_tile,up) 
+		free_tile=move_freetile(free_tile,up) 
 		sfx(1)
 	end
 	if btnp(⬇️) then 
-		free_tile=move_tile(free_tile,down) 
+		free_tile=move_freetile(free_tile,down) 
 		sfx(1)
 	end
 end
@@ -86,19 +90,19 @@ function player_movement()
 		sfx(3)
 	end
 	if btnp(⬅️) then 
-		cplayer.x-=1
+		cplayer=move_direction(cplayer,left)
 		sfx(1)
 	end
 	if btnp(➡️) then 
-		cplayer.x+=1
+		cplayer=move_direction(cplayer,right)
 		sfx(1) 
 	end
 	if btnp(⬆️) then 
-		cplayer.y-=1
+		cplayer=move_direction(cplayer,up)
 		sfx(1)
 	end
 	if btnp(⬇️) then 
-		cplayer.y+=1
+		cplayer=move_direction(cplayer,down)
 		sfx(1)
 	end
 end
@@ -133,7 +137,7 @@ function setup_lab()
 end
 
 --returns a 2d array of tiles
---tiles are an array of sprite, x, and y
+--tiles are an array of sprite, x & y
 function initial_lab()
 	local _lab={}
 	local _index=1	
@@ -238,7 +242,7 @@ function rotate_tile(_sprite)
 	return _sprite
 end
 
-function move_tile(_spr,_dir)
+function move_freetile(_spr,_dir)
 	local _destx,_desty=_dir[1]*2,_dir[2]*2
 	--on top/bottom
 	_spr.x,_spr.y=tile_limit(_spr.x,_spr.y,_destx)
@@ -247,7 +251,7 @@ function move_tile(_spr,_dir)
 	--moves tile past the invalid space
 	--★ can get stuck depending on dir
 	if same_space(_spr,invalid_space) then
-		return move_tile(_spr,_dir)
+		return move_freetile(_spr,_dir)
 	end
 	return _spr
 end
@@ -273,42 +277,58 @@ function next_player(_players,_cplayer)
 	return _nplayer and _nplayer or _players[1]
 end
 
-function push_tile()
+function push_tiles()
 	--get location of free_tile
-	local _x,_y,_ttile=free_tile.x,free_tile.y,free_tile
-	local _row,_column=lab[_y],{}
-		for j=1,7 do
-			add(_column,lab[j][_x])
+	local _x,_y,_temp=free_tile.x,free_tile.y,free_tile
+	if _x==1 or _x ==9 then --free tile is on the left or right
+		local _row={}
+		for i=1,9 do
+			add(_row,lab[i][_y])
 		end
-	--find out which way it's pushing
-	if _x==1 then
-		--push right
-		for i=1,#_row-1 do
-			_row[i],_ttile=_ttile,_row[i+1]
+		if _x==1 then --push right
+			for i=2,#_row-1 do
+				_row[i],_temp=_temp,_row[i]
+				_row[i]=move_direction(_row[i],right)
+			end
+			invalid_space={x=9,y=_y}
+		else  --push left
+			for i=#_row-1,2,-1 do
+				_row[i],_temp=_temp,_row[i]
+				_row[i]=move_direction(_row[i],left)
+			end
+			invalid_space={x=1,y=_y}
 		end
-		invalid_space={x=7,y=_y}
-	elseif _x==7 then
-		--push left
-		for i=#_row,2,-1 do
-			_row[i],_ttile=_ttile,_row[i-1]
+		--change labrynth row
+		for i=1,9 do
+			lab[i][_y]=_row[i]
 		end
-		invalid_space={x=1,y=_y}
-	elseif _y==1 then
+	else --free tile is on top or bottom
+		local _column=lab[_x]
 		--push down
-		
-		invalid_space={x=_x,y=7}
-	elseif _y==7 then
-		--push up
-		
-		invalid_space={x=_x,y=1}
-	end
-	--change the labrynth
-	lab[_y]=_row
-	for j=1,7 do
-		lab[_y][j]=_column[j]
+		if _y==1 then --push down
+			for i=2,#_column-1 do
+				_column[i],_temp=_temp,_column[i]
+				_column[i]=move_direction(_column[i],down)
+			end
+			invalid_space={x=_x,y=9}
+		else --push up
+			for i=#_column-1,2,-1 do
+				_column[i],_temp=_temp,_column[i]
+				_column[i]=move_direction(_column[i],up)
+			end
+			invalid_space={x=_x,y=1}
+		end
+		--change labrynth column
+		lab[_x]=_column
 	end
 	--reassign free_tile
-	free_tile={sprite=_ttile,x=invalid_space.x,y=invalid_space.y}
+	free_tile={sprite=_temp.sprite,x=invalid_space.x,y=invalid_space.y}
+end
+
+function move_direction(_obj,_dir)
+	_obj.x+=_dir[1]
+	_obj.y+=_dir[2]
+	return _obj
 end
 
 function same_space(_a,_b)
