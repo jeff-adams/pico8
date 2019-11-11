@@ -45,12 +45,8 @@ function draw_lab()
 end
 
 function draw_tile(_tile)
-	if _tile.x==nil then 
-		print("nil",80,80,9)
-	else
-		local _x,_y=_tile.x*8+origin,_tile.y*8+origin
-		spr(_tile.sprite,_x,_y)
-	end
+	local _x,_y=_tile.x*8+origin,_tile.y*8+origin
+	spr(_tile.sprite,_x,_y)
 end
 
 function tile_placement()
@@ -141,9 +137,9 @@ end
 function initial_lab()
 	local _lab={}
 	local _index=1	
-	for _x=0,8 do
+	for _x=1,9 do
 		local _row={}
-		for _y=0,8 do
+		for _y=1,9 do
 			local _i=place_indicator(_x,_y)
 			if _i==nil then 
 				_i=place_default_tile(_x,_y,_index) 
@@ -163,13 +159,13 @@ end
 
 function place_indicator(_x,_y)
 	--down
-	if _y==0 and mid(1,_x,7)%2==0 then return 1 end
+	if _y==1 and mid(2,_x,8)%2==1 then return 1 end
 	--left
-	if _x==8 and mid(1,_y,7)%2==0 then return 2 end
+	if _x==9 and mid(2,_y,8)%2==1 then return 2 end
 	--up
-	if _y==8 and mid(1,_x,7)%2==0 then return 3 end
+	if _y==9 and mid(2,_x,8)%2==1 then return 3 end
 	--right
-	if _x==0 and mid(1,_y,7)%2==0 then return 4 end
+	if _x==1 and mid(2,_y,8)%2==1 then return 4 end
 	--not an indicator
 	return nil
 end
@@ -179,7 +175,7 @@ function place_default_tile(_x,_y,_index)
 	local _tiles={17,49,49,20,50,49,52,52,50,50,51,52,18,51,51,19}
 	--inside spaces
 	if is_inside_space(_x,_y) then 
-		 if _x%2==1 and _y%2==1 then
+		 if _x%2==0 and _y%2==0 then
 		 	return _tiles[_index]
 		 end
 	end
@@ -206,7 +202,7 @@ function place_tiles(_lab,_tiles)
 	local _tindex=1
 	for i=1,#_lab do
 		for j=1,#_lab[i] do
-			if is_inside_space(i-1,j-1) then
+			if is_inside_space(i,j) then
 				local _tile=_lab[i][j]
 				if _tile.sprite==16 then
 					_lab[i][j]={sprite=_tiles[_tindex],x=i,y=j}
@@ -219,7 +215,7 @@ function place_tiles(_lab,_tiles)
 end
 
 function is_inside_space(_x,_y)
-	return _x==mid(1,_x,7) and _y==mid(1,_y,7)
+	return _x==mid(2,_x,8) and _y==mid(2,_y,8)
 end
 
 function player_setup()
