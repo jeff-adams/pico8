@@ -34,14 +34,6 @@ function _draw()
 	foreach(players,draw_tile)
 	--draw text
 	draw_instructions()
-
-	--debug
-	print(#debug,98,8,3)
-	cursor(98,18)
-	color(11)
-	for tile in all(debug) do
-		print(tile.sprite.." "..tile.x..","..tile.y)
-	end
 end	
 
 function draw_borders()
@@ -161,9 +153,9 @@ function setup_lab()
 	return _lab
 end
 
---returns a 2d array of tiles
---tiles are an array of sprite, x & y
 function initial_lab()
+	--returns a 2d array of tiles
+	--tiles are an array of sprite, x & y
 	local _lab={}
 	local _index=1	
 	for _x=1,9 do
@@ -269,11 +261,11 @@ end
 
 function move_freetile(_spr,_dir)
 	if _dir.x==-1 or _dir.y==-1 then
-		_coord,_spr.pos_key=previous_circular(positions,_spr.pos_key)
+		_v2,_spr.pos_key=previous_circular(positions,_spr.pos_key)
 	else
-		_coord,_spr.pos_key=next_circular(positions,_spr.pos_key)
+		_v2,_spr.pos_key=next_circular(positions,_spr.pos_key)
 	end
-	_spr.x,_spr.y=_coord.x,_coord.y
+	_spr.x,_spr.y=_v2.x,_v2.y
 	--skips the invalid space
 	if same_space(_spr,invalid_space) then return move_freetile(_spr,_dir) end
 	return _spr
@@ -291,15 +283,13 @@ end
 
 function next_circular(_list,_key)
 	--returns next in table, circular
-	_key+=1
-	_key=_key<=#_list and _key or 1
+	_key=_key%#_list+1
 	return _list[_key],_key
 end
 
 function previous_circular(_list,_key)
 	--returns previous in table, circular
-	_key-=1
-	_key=_key>0 and _key or #_list
+	_key=(_key-2)%#_list+1
 	return _list[_key],_key
 end
 
@@ -327,7 +317,7 @@ function push_tiles()
 			for i=2,#_row-1 do
 				--swap tiles
 				_row[i],_temp=_temp,_row[i]
-				--change the tile's x,y coords
+				--change the tile's x,y v2s
 				_row[i]=move_direction(_row[i],right)
 			end
 			invalid_space={x=9,y=_y}
@@ -342,7 +332,6 @@ function push_tiles()
 		for i=1,9 do
 			lab[i][_y]=_row[i]
 		end
-		debug=_row
 	else --free tile is on top or bottom
 		local _column=lab[_x]
 		--push down
