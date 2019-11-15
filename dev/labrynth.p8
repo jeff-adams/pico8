@@ -8,11 +8,14 @@ function _init()
 	cls()
 	setup_vars()
 	--labrynth setup
-	free_tile={sprite=16,x=3,y=1}
+	local _starting_pos=positions[1]
+	free_tile={sprite=16,x=_starting_pos.x,y=_starting_pos.y,pos_key=1}
 	lab=setup_lab()
 	--player setup
 	players=player_setup()
 	cplayer=players[1]
+
+	debug={free_tile}
 end
 
 function _update()
@@ -31,6 +34,14 @@ function _draw()
 	foreach(players,draw_tile)
 	--draw text
 	draw_instructions()
+
+	--debug
+	print(#debug,98,8,3)
+	cursor(98,18)
+	color(11)
+	for tile in all(debug) do
+		print(tile.sprite.." "..tile.x..","..tile.y)
+	end
 end	
 
 function draw_borders()
@@ -61,7 +72,7 @@ function draw_instructions()
 	color()
 end
 
-function tile_placement()
+function update_tile()
 	instructions[1]="❎: rotate tile"
 	instructions[2]="🅾️: shift labrynth"
 	if btnp(❎) then 
@@ -72,7 +83,7 @@ function tile_placement()
 	if btnp(🅾️) then
 		--push tile in
 		push_tiles()
-		update=player_movement
+		update=update_player
 		sfx(2)
 	end
 	if btnp(⬅️) then 
@@ -93,12 +104,12 @@ function tile_placement()
 	end
 end
 
-function player_movement()
+function update_player()
 	instructions[1]="❎: end turn"
 	instructions[2]=nil
 	if btnp(❎) then
-		cplayer=next_player(players,cplayer) 
-		update=tile_placement
+		cplayer=next_circular(players,get_key(players,cplayer)) 
+		update=update_tile
 		sfx(3)
 	end
 	if btnp(⬅️) then 
@@ -127,9 +138,10 @@ function setup_vars()
 	down={x=0,y=1}
 	right={x=1,y=0}
 	left={x=-1,y=0}
+	positions={{x=3,y=1},{x=5,y=1},{x=7,y=1},{x=9,y=3},{x=9,y=5},{x=9,y=7},{x=7,y=9},{x=5,y=9},{x=3,y=9},{x=1,y=7},{x=1,y=5},{x=1,y=3}}
 	invalid_space={x=0,y=0}
 	
-	update=tile_placement
+	update=update_tile
 	instructions={}
 end
 
@@ -256,23 +268,14 @@ function rotate_tile(_sprite)
 end
 
 function move_freetile(_spr,_dir)
-	local _destx,_desty=_dir.x*2,_dir.y*2
-	if(abs(_dir.x)>0) then
-		_spr.x,_spr.y=tile_limit(_spr.x,_spr.y,_destx)
-		if same_space(_spr,invalid_space) then
-			--only works for top/right, bottom/left corners
-			_spr.y,_spr.x=tile_limit(_spr.y,_spr.x,_destx)
-		end
+	if _dir.x==-1 or _dir.y==-1 then
+		_coord,_spr.pos_key=previous_circular(positions,_spr.pos_key)
+	else
+		_coord,_spr.pos_key=next_circular(positions,_spr.pos_key)
 	end
-	if(abs(_dir.y)>0) then
-		_spr.y,_spr.x=tile_limit(_spr.y,_spr.x,_desty)
-		if same_space(_spr,invalid_space) then
-			_spr.x,_spr.y=tile_limit(_spr.x,_spr.y,_desty)
-		end
-	end
-	if same_space(_spr,invalid_space) then
-		return move_freetile(_spr,_dir)
-	end
+	_spr.x,_spr.y=_coord.x,_coord.y
+	--skips the invalid space
+	if same_space(_spr,invalid_space) then return move_freetile(_spr,_dir) end
 	return _spr
 end
 
@@ -286,15 +289,30 @@ function tile_limit(_a,_b,_dest)
 	return _a,_b
 end
 
-function next_player(_players,_cplayer)
+function next_circular(_list,_key)
 	--returns next in table, circular
-	local _key=nil
-	for k,v in pairs(_players) do
-  		if v==_cplayer then _key=k end
- 	end
-	local _,_nplayer=next(_players,_key)
-	--_nplayer will be nil if its the last in the table
-	return _nplayer and _nplayer or _players[1]
+	_key+=1
+	_key=_key<=#_list and _key or 1
+	return _list[_key],_key
+end
+
+function previous_circular(_list,_key)
+	--returns previous in table, circular
+	_key-=1
+	_key=_key>0 and _key or #_list
+	return _list[_key],_key
+end
+
+function get_key(_table,_value)
+	--shallow search for table contents
+	for k,v in pairs(_table) do
+		if v==_value then return k end
+	end
+	--deep search for value comparison
+	for k,v in pairs(_table) do
+		if v.x==_value.x and v.y==_value.y then return k end
+	end
+	return nil
 end
 
 function push_tiles()
@@ -307,7 +325,9 @@ function push_tiles()
 		end
 		if _x==1 then --push right
 			for i=2,#_row-1 do
+				--swap tiles
 				_row[i],_temp=_temp,_row[i]
+				--change the tile's x,y coords
 				_row[i]=move_direction(_row[i],right)
 			end
 			invalid_space={x=9,y=_y}
@@ -322,6 +342,7 @@ function push_tiles()
 		for i=1,9 do
 			lab[i][_y]=_row[i]
 		end
+		debug=_row
 	else --free tile is on top or bottom
 		local _column=lab[_x]
 		--push down
@@ -342,7 +363,11 @@ function push_tiles()
 		lab[_x]=_column
 	end
 	--reassign free_tile
-	free_tile={sprite=_temp.sprite,x=invalid_space.x,y=invalid_space.y}
+	free_tile={
+		sprite=_temp.sprite,
+		x=invalid_space.x,
+		y=invalid_space.y,
+		pos_key=get_key(positions,invalid_space)}
 end
 
 function move_direction(_obj,_dir)
