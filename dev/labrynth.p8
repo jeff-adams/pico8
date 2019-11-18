@@ -4,6 +4,13 @@ __lua__
 --labrynth
 --by atomicxistence
 
+--todo
+--item spawn
+--item pickup
+--gui display of inventory
+--check invalid space before push_tile
+--players/items pushed off the edge respawn on opposite side
+
 function _init()
 	cls()
 	setup_vars()
@@ -344,11 +351,17 @@ function push_tiles()
 				--change the tile's x,y v2s
 				move_direction(_row[i],right)
 			end
+			for _player in all(players) do
+				if _player.y==_y then move_direction(_player,right) end
+			end
 			invalid_space={x=9,y=_y}
 		else  --push left
 			for i=#_row-1,2,-1 do
 				_row[i],_temp=_temp,_row[i]
 				move_direction(_row[i],left)
+			end
+			for _player in all(players) do
+				if _player.y==_y then move_direction(_player,left) end
 			end
 			invalid_space={x=1,y=_y}
 		end
@@ -364,11 +377,17 @@ function push_tiles()
 				_column[i],_temp=_temp,_column[i]
 				move_direction(_column[i],down)
 			end
+			for _player in all(players) do
+				if _player.x==_x then move_direction(_player,down) end
+			end
 			invalid_space={x=_x,y=9}
 		else --push up
 			for i=#_column-1,2,-1 do
 				_column[i],_temp=_temp,_column[i]
 				move_direction(_column[i],up)
+			end
+			for _player in all(players) do
+				if _player.x==_x then move_direction(_player,up) end
 			end
 			invalid_space={x=_x,y=1}
 		end
