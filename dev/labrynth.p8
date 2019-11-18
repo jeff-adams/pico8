@@ -19,7 +19,11 @@ function _init()
 end
 
 function _update()
-	update()
+	if task_running() then
+		--continue running
+	else
+		update()
+	end
 end
 
 function _draw()
@@ -51,7 +55,7 @@ function draw_lab()
 end
 
 function draw_tile(_tile)
-	local _x,_y=_tile.x*8+origin,_tile.y*8+origin
+	local _x,_y=flr(_tile.x*8+origin),flr(_tile.y*8+origin)
 	spr(_tile.sprite,_x,_y)
 end
 
@@ -62,6 +66,17 @@ function draw_instructions()
 	print("------------------")
 	foreach(instructions, print)
 	color()
+end
+
+function task_running()
+	for _task in all(task_pool) do
+		if costatus(_task)=="suspended" then
+			assert(coresume(_task))
+		else
+			del(task_pool,_task)
+		end
+	end
+	return #task_pool>0
 end
 
 function update_tile()
@@ -122,7 +137,7 @@ end
 
 function move_player(_tile,_dir)
 	if is_path(_tile,_dir) then 
-		cplayer=move_direction(cplayer,_dir)
+		move_direction(cplayer,_dir)
 		sfx(1)
 	else
 		sfx(4)
@@ -140,7 +155,9 @@ function setup_vars()
 	positions={{x=3,y=1},{x=5,y=1},{x=7,y=1},{x=9,y=3},{x=9,y=5},{x=9,y=7},{x=7,y=9},{x=5,y=9},{x=3,y=9},{x=1,y=7},{x=1,y=5},{x=1,y=3}}
 	invalid_space={x=0,y=0}
 	
+	ani_speed=8
 	update=update_tile
+	task_pool={}
 	instructions={}
 end
 
@@ -325,13 +342,13 @@ function push_tiles()
 				--swap tiles
 				_row[i],_temp=_temp,_row[i]
 				--change the tile's x,y v2s
-				_row[i]=move_direction(_row[i],right)
+				move_direction(_row[i],right)
 			end
 			invalid_space={x=9,y=_y}
 		else  --push left
 			for i=#_row-1,2,-1 do
 				_row[i],_temp=_temp,_row[i]
-				_row[i]=move_direction(_row[i],left)
+				move_direction(_row[i],left)
 			end
 			invalid_space={x=1,y=_y}
 		end
@@ -345,13 +362,13 @@ function push_tiles()
 		if _y==1 then --push down
 			for i=2,#_column-1 do
 				_column[i],_temp=_temp,_column[i]
-				_column[i]=move_direction(_column[i],down)
+				move_direction(_column[i],down)
 			end
 			invalid_space={x=_x,y=9}
 		else --push up
 			for i=#_column-1,2,-1 do
 				_column[i],_temp=_temp,_column[i]
-				_column[i]=move_direction(_column[i],up)
+				move_direction(_column[i],up)
 			end
 			invalid_space={x=_x,y=1}
 		end
@@ -367,9 +384,17 @@ function push_tiles()
 end
 
 function move_direction(_obj,_dir)
-	_obj.x+=_dir.x
-	_obj.y+=_dir.y
-	return _obj
+	local _task=cocreate(function() move_animate(_obj,_dir) end)
+	add(task_pool,_task)
+end
+
+function move_animate(_obj,_dir)
+	local _offset=1/ani_speed
+	for i=1,ani_speed do
+		_obj.x+=_offset*_dir.x
+		_obj.y+=_offset*_dir.y
+		yield()
+	end
 end
 
 function same_space(_a,_b)
