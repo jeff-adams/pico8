@@ -5,8 +5,8 @@ __lua__
 --by atomicxistence
 
 --todo
---item pickup
 --gui display of inventory
+--win check
 --check invalid space before push_tile
 --players/items pushed off the edge respawn on opposite side
 
@@ -46,6 +46,9 @@ function _draw()
 	foreach(players,draw_tile)
 	--draw text
 	draw_instructions()
+
+	cursor(98,10,11)
+	foreach(debug,print)
 end	
 
 function draw_borders()
@@ -123,10 +126,9 @@ function update_player()
 	instructions[1]="❎: end turn"
 	instructions[2]=nil
 	local _ctile=lab[cplayer.x][cplayer.y]
+	item_pickup()
 	if btnp(❎) then
-		cplayer=next_circular(players,get_key(players,cplayer)) 
-		update=update_tile
-		sfx(3)
+		next_player_turn()
 	end
 	if btnp(⬅️) then
 		move_player(_ctile,left)
@@ -166,6 +168,8 @@ function setup_vars()
 	update=update_tile
 	task_pool={}
 	instructions={}
+
+	debug={}
 end
 
 function setup_lab()
@@ -268,9 +272,9 @@ end
 
 function player_setup()
 	local _players={}
-	local _p1={sprite=5,x=2,y=2}
+	local _p1={sprite=5,x=2,y=2,items=0}
 	add(_players,_p1)
-	local _p2={sprite=6,x=8,y=8}
+	local _p2={sprite=6,x=8,y=8,items=0}
 	add(_players,_p2)
 	return _players
 end
@@ -285,6 +289,27 @@ function item_setup()
 end
 -->8
 --logic
+
+function next_player_turn()
+	cplayer=next_circular(players,get_key(players,cplayer)) 
+	update=update_tile
+	sfx(3)
+end
+
+function item_pickup()
+	for item in all(items) do
+		if same_space(cplayer,item) then
+			debug[cplayer.sprite-4]=(item.sprite-1)%4+1
+			if cplayer.sprite-4==(item.sprite-1)%4+1 then
+				cplayer.items+=1
+				sfx(5)
+				local _invalidspaces=flatten_tables(items,players)
+				item.x,item.y=rnd_place_item(_invalidspaces)
+				next_player_turn()
+			end
+		end
+	end
+end
 
 function new_item(_pnum,_invalidspaces)
 	--returns a randomly placed item
@@ -518,3 +543,4 @@ __sfx__
 000600001f1501f15019150191501f1501f1501c1501c150151501515015150151501015010150101501015000100001000010000100001000010000100001000010000100001000010000100001000010000100
 000400000645004450014500040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400004000040000400
 000600000515005150001500015000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100001000010000100
+0005000033750337503d7503d7503d7503d7500070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700
