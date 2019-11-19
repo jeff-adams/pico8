@@ -46,35 +46,33 @@ function _draw()
 	foreach(players,draw_tile)
 	--draw text
 	draw_instructions()
-
-	cursor(98,10,11)
-	foreach(debug,print)
 end	
 
 function draw_borders()
 	color(5)
-	rect(origin,origin,origin+90,origin+90)
+	rect(origin.x+6,origin.y+6,origin.x+80,origin.y+80)
 end
 
 function draw_lab()
 	for _row=1,9 do
 		for _col=1,9 do
 			local _tile=lab[_row][_col]
-			spr(_tile,origin+8*_row,origin+8*_col)
+			spr(_tile,origin.x+8*_row,origin.y+8*_col)
 		end
 	end
 end
 
 function draw_tile(_tile)
-	local _x,_y=flr(_tile.x*8+origin),flr(_tile.y*8+origin)
+	local _x,_y=flr(_tile.x*8+origin.x),flr(_tile.y*8+origin.y)
 	spr(_tile.sprite,_x,_y)
 end
 
 function draw_instructions()
-	cursor(origin+4,origin+94)
-	color(9)
-	print("player "..(cplayer.sprite-4).."'s turn")
-	print("------------------")
+	cursor(origin.x+6,origin.y+84)
+	color(cplayer.color)
+	print("  player "..(cplayer.sprite-4).."'s turn")
+	color(5)
+	print("-------------------")
 	foreach(instructions, print)
 	color()
 end
@@ -156,7 +154,7 @@ end
 --setup
 
 function setup_vars()
-	origin=2
+	origin={x=19,y=10}
 	up={x=0,y=-1,flag=2}
 	down={x=0,y=1,flag=3}
 	right={x=1,y=0,flag=1}
@@ -272,9 +270,9 @@ end
 
 function player_setup()
 	local _players={}
-	local _p1={sprite=5,x=2,y=2,items=0}
+	local _p1={sprite=5,x=2,y=2,items=0,color=8}
 	add(_players,_p1)
-	local _p2={sprite=6,x=8,y=8,items=0}
+	local _p2={sprite=6,x=8,y=8,items=0,color=12}
 	add(_players,_p2)
 	return _players
 end
@@ -387,6 +385,7 @@ function get_key(_table,_value)
 	return nil
 end
 
+--refactor!!!!!!!!!
 function push_tiles()
 	--get location of free_tile
 	local _x,_y,_temp=free_tile.x,free_tile.y,free_tile
@@ -405,6 +404,9 @@ function push_tiles()
 			for _player in all(players) do
 				if _player.y==_y then move_direction(_player,right) end
 			end
+			for _item in all(items) do
+				if _item.y==_y then move_direction(_item,right) end
+			end
 			invalid_space={x=9,y=_y}
 		else  --push left
 			for i=#_row-1,2,-1 do
@@ -413,6 +415,9 @@ function push_tiles()
 			end
 			for _player in all(players) do
 				if _player.y==_y then move_direction(_player,left) end
+			end
+			for _item in all(items) do
+				if _item.y==_y then move_direction(_item,left) end
 			end
 			invalid_space={x=1,y=_y}
 		end
@@ -431,6 +436,9 @@ function push_tiles()
 			for _player in all(players) do
 				if _player.x==_x then move_direction(_player,down) end
 			end
+			for _item in all(items) do
+				if _item.x==_x then move_direction(_item,down) end
+			end
 			invalid_space={x=_x,y=9}
 		else --push up
 			for i=#_column-1,2,-1 do
@@ -439,6 +447,9 @@ function push_tiles()
 			end
 			for _player in all(players) do
 				if _player.x==_x then move_direction(_player,up) end
+			end
+			for _item in all(items) do
+				if _item.x==_x then move_direction(_item,up) end
 			end
 			invalid_space={x=_x,y=1}
 		end
