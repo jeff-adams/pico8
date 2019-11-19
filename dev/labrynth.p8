@@ -5,7 +5,6 @@ __lua__
 --by atomicxistence
 
 --todo
---item spawn
 --item pickup
 --gui display of inventory
 --check invalid space before push_tile
@@ -21,8 +20,8 @@ function _init()
 	--player setup
 	players=player_setup()
 	cplayer=players[1]
-
-	debug={}
+	--item setup
+	items=item_setup()
 end
 
 function _update()
@@ -37,10 +36,12 @@ function _draw()
 	cls()
 	draw_borders()
 	--draw labrynth
-	for row in all(lab) do
-		foreach(row,draw_tile)
+	for column in all(lab) do
+		foreach(column,draw_tile)
 	end
 	draw_tile(free_tile)
+	--draw items
+	foreach(items,draw_tile)
 	--draw players
 	foreach(players,draw_tile)
 	--draw text
@@ -122,7 +123,6 @@ function update_player()
 	instructions[1]="❎: end turn"
 	instructions[2]=nil
 	local _ctile=lab[cplayer.x][cplayer.y]
-	debug=_ctile
 	if btnp(❎) then
 		cplayer=next_circular(players,get_key(players,cplayer)) 
 		update=update_tile
@@ -274,8 +274,34 @@ function player_setup()
 	add(_players,_p2)
 	return _players
 end
+
+function item_setup()
+	local _items,_invalidspaces={},{}
+	for i=1,#players do
+		local _invalidspaces=flatten_tables(_items,players)
+		add(_items,new_item(i,_invalidspaces))
+	end
+	return _items
+end
 -->8
 --logic
+
+function new_item(_pnum,_invalidspaces)
+	--returns a randomly placed item
+	local _item={sprite=20+_pnum,x=0,y=0}
+	_item.x,_item.y=rnd_place_item(_invalidspaces)
+	return _item
+end
+
+function rnd_place_item(_invalidspaces)
+	local _pos={x=flr(rnd(6)+2),y=flr(rnd(6)+2)}
+	for _space in all(_invalidspaces) do
+		if same_space(_space,_pos) then 
+			return rnd_place_item(_invalidspaces) 
+		end
+	end
+	return _pos.x,_pos.y
+end
 
 function is_inside_space(_x,_y)
 	return _x==mid(2,_x,8) and _y==mid(2,_y,8)
@@ -429,6 +455,16 @@ function is_path(_tile,_dir)
 		end
 	end
 	return false
+end
+
+function flatten_tables(...)
+	local _new_table,_tables={},{...}
+	for table in all(_tables) do
+		for item in all(table) do
+			add(_new_table,item)
+		end
+	end
+	return _new_table
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
