@@ -5,7 +5,6 @@ __lua__
 --by atomicxistence
 
 --todo
---gui display of inventory
 --win check
 --check invalid space before push_tile
 --players/items pushed off the edge respawn on opposite side
@@ -34,7 +33,6 @@ end
 
 function _draw()
 	cls()
-	draw_borders()
 	--draw labrynth
 	for column in all(lab) do
 		foreach(column,draw_tile)
@@ -44,8 +42,7 @@ function _draw()
 	foreach(items,draw_tile)
 	--draw players
 	foreach(players,draw_tile)
-	--draw text
-	draw_instructions()
+	draw_gui()
 end	
 
 function draw_borders()
@@ -75,6 +72,25 @@ function draw_instructions()
 	print("-------------------")
 	foreach(instructions, print)
 	color()
+end
+
+function draw_scores()
+	cursor(2,origin.y+10)
+	for _player in all(players) do
+		color(_player.color)
+		--print("p"..(_player.sprite-4))
+		print("keys")
+		color(6)
+		print(_player.items.."/"..goal)
+		color(5)
+		print("----")
+	end
+end
+
+function draw_gui()
+	draw_borders()
+	draw_instructions()
+	draw_scores()
 end
 
 function task_running()
@@ -163,6 +179,7 @@ function setup_vars()
 	invalid_space={x=0,y=0}
 	
 	ani_speed=8
+	goal=5
 	update=update_tile
 	task_pool={}
 	instructions={}
