@@ -5,7 +5,6 @@ __lua__
 --by atomicxistence
 
 --todo
---win check
 --check invalid space before push_tile
 --players/items pushed off the edge respawn on opposite side
 
@@ -67,10 +66,12 @@ end
 function draw_instructions()
 	cursor(origin.x+6,origin.y+84)
 	color(cplayer.color)
-	print("  player "..(cplayer.sprite-4).."'s turn")
+	print(instructions[1])
 	color(5)
 	print("-------------------")
-	foreach(instructions, print)
+	for i=2,#instructions do
+		print(instructions[i])
+	end
 	color()
 end
 
@@ -105,8 +106,9 @@ function task_running()
 end
 
 function update_tile()
-	instructions[1]="❎: rotate tile"
-	instructions[2]="🅾️: shift labrynth"
+	instructions[1]="  player "..(cplayer.sprite-4).."'s turn"
+	instructions[2]="❎: rotate tile"
+	instructions[3]="🅾️: shift labrynth"
 	if btnp(❎) then 
 		--rotate tile
 		free_tile.sprite=rotate_tile(free_tile.sprite)
@@ -137,8 +139,9 @@ function update_tile()
 end
 
 function update_player()
-	instructions[1]="❎: end turn"
-	instructions[2]=nil
+	instructions[1]="  player "..(cplayer.sprite-4).."'s turn"
+	instructions[2]="❎: end turn"
+	instructions[3]=nil
 	local _ctile=lab[cplayer.x][cplayer.y]
 	item_pickup()
 	if btnp(❎) then
@@ -158,6 +161,10 @@ function update_player()
 	end
 end
 
+function gameover()
+	if btnp(❎) then _init() end
+end
+
 function move_player(_tile,_dir)
 	if is_path(_tile,_dir) then 
 		move_direction(cplayer,_dir)
@@ -166,6 +173,18 @@ function move_player(_tile,_dir)
 		sfx(4)
 	end
 end
+
+function win_check()
+	for player in all(players) do
+		if player.items >= goal then
+			--game over, player wins
+			instructions={"  player "..(player.sprite-4).." wins!","❎: play again"}
+			update=gameover
+			return false
+		end
+		return true
+	end
+end	
 -->8
 --setup
 
@@ -179,7 +198,7 @@ function setup_vars()
 	invalid_space={x=0,y=0}
 	
 	ani_speed=8
-	goal=5
+	goal=1
 	update=update_tile
 	task_pool={}
 	instructions={}
@@ -318,9 +337,11 @@ function item_pickup()
 			if cplayer.sprite-4==(item.sprite-1)%4+1 then
 				cplayer.items+=1
 				sfx(5)
-				local _invalidspaces=flatten_tables(items,players)
-				item.x,item.y=rnd_place_item(_invalidspaces)
-				next_player_turn()
+				if win_check() then
+					local _invalidspaces=flatten_tables(items,players)
+					item.x,item.y=rnd_place_item(_invalidspaces)
+					next_player_turn()
+				end
 			end
 		end
 	end
