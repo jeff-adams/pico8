@@ -5,8 +5,11 @@ __lua__
 --by atomicxistence
 
 --todo
---check invalid space before push_tile
 --players/items pushed off the edge respawn on opposite side
+--menu screen
+--player # selection
+--sprite upgrade/enchance color contrast
+--music
 
 function _init()
 	cls()
@@ -115,10 +118,16 @@ function update_tile()
 		sfx(0)
 	end
 	if btnp(🅾️) then
-		--push tile in
-		push_tiles()
-		update=update_player
-		sfx(2)
+		--make sure its not invalid_space
+		if same_space(invalid_space,free_tile) then
+			--do not push tile in
+			sfx(4)
+		else
+			--push tile in
+			push_tiles()
+			update=update_player
+			sfx(2)
+		end
 	end
 	if btnp(⬅️) then 
 		free_tile=move_freetile(free_tile,left) 
@@ -198,7 +207,7 @@ function setup_vars()
 	invalid_space={x=0,y=0}
 	
 	ani_speed=8
-	goal=1
+	goal=5
 	update=update_tile
 	task_pool={}
 	instructions={}
@@ -306,10 +315,10 @@ end
 
 function player_setup()
 	local _players={}
-	local _p1={sprite=5,x=2,y=2,items=0,color=8}
-	add(_players,_p1)
-	local _p2={sprite=6,x=8,y=8,items=0,color=12}
-	add(_players,_p2)
+	_players[1]={sprite=5,x=2,y=2,items=0,color=8}
+	_players[2]={sprite=6,x=8,y=8,items=0,color=12}
+	_players[3]={sprite=7,x=8,y=2,items=0,color=11}
+	_players[4]={sprite=8,x=2,y=8,items=0,color=14}
 	return _players
 end
 
