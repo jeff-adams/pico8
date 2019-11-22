@@ -5,7 +5,6 @@ __lua__
 --by atomicxistence
 
 --todo
---players/items pushed off the edge respawn on opposite side
 --menu screen
 --player # selection
 --sprite upgrade/enchance color contrast
@@ -448,24 +447,16 @@ function push_tiles()
 				--change the tile's x,y v2s
 				move_direction(_row[i],right)
 			end
-			for _player in all(players) do
-				if _player.y==_y then move_direction(_player,right) end
-			end
-			for _item in all(items) do
-				if _item.y==_y then move_direction(_item,right) end
-			end
+			shift_objects(players,right,_y)
+			shift_objects(items,right,_y)
 			invalid_space={x=9,y=_y}
 		else  --push left
 			for i=#_row-1,2,-1 do
 				_row[i],_temp=_temp,_row[i]
 				move_direction(_row[i],left)
 			end
-			for _player in all(players) do
-				if _player.y==_y then move_direction(_player,left) end
-			end
-			for _item in all(items) do
-				if _item.y==_y then move_direction(_item,left) end
-			end
+			shift_objects(players,left,_y)
+			shift_objects(items,left,_y)
 			invalid_space={x=1,y=_y}
 		end
 		--change labrynth row
@@ -474,30 +465,21 @@ function push_tiles()
 		end
 	else --free tile is on top or bottom
 		local _column=lab[_x]
-		--push down
 		if _y==1 then --push down
 			for i=2,#_column-1 do
 				_column[i],_temp=_temp,_column[i]
 				move_direction(_column[i],down)
 			end
-			for _player in all(players) do
-				if _player.x==_x then move_direction(_player,down) end
-			end
-			for _item in all(items) do
-				if _item.x==_x then move_direction(_item,down) end
-			end
+			shift_objects(players,down,_x)
+			shift_objects(items,down,_x)
 			invalid_space={x=_x,y=9}
 		else --push up
 			for i=#_column-1,2,-1 do
 				_column[i],_temp=_temp,_column[i]
 				move_direction(_column[i],up)
 			end
-			for _player in all(players) do
-				if _player.x==_x then move_direction(_player,up) end
-			end
-			for _item in all(items) do
-				if _item.x==_x then move_direction(_item,up) end
-			end
+			shift_objects(players,up,_x)
+			shift_objects(items,up,_x)
 			invalid_space={x=_x,y=1}
 		end
 		--change labrynth column
@@ -511,9 +493,37 @@ function push_tiles()
 		pos_key=get_key(positions,invalid_space)}
 end
 
+function shift_objects(_objects,_dir,_ref)
+	local _newpos
+	if _dir.x == 0 then
+		for _obj in all(_objects) do
+			if _obj.x==_ref then 
+				_newpos=move_direction(_obj,_dir)
+				_obj.y=wrap_item(_newpos.y,_dir.y)				 
+			end
+		end
+	else
+		for _obj in all(_objects) do
+			if _obj.y==_ref then 
+				_newpos=move_direction(_obj,_dir) 
+				_obj.x=wrap_item(_newpos.x,_dir.x)
+			end
+		end
+	end
+end
+
+function wrap_item(_axis,_dir)
+	if _axis%9<2 then --obj is outside
+		--move to other side
+		_axis+=8*-(_dir)
+	end
+	return _axis
+end
+
 function move_direction(_obj,_dir)
 	local _task=cocreate(function() move_animate(_obj,_dir) end)
 	add(task_pool,_task)
+	return {x=_obj.x+_dir.x,y=_obj.y+_dir.y}
 end
 
 function move_animate(_obj,_dir)
