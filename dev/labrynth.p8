@@ -100,6 +100,14 @@ function draw_gui()
 	draw_scores()
 end
 
+function draw_menu()
+	cursor(48,30,9)
+	print("labrynth")
+
+	cursor(24,120,5)
+	print("press ❎ to continue")
+end
+
 function task_running()
 	for _task in all(task_pool) do
 		if costatus(_task)=="suspended" then
@@ -109,6 +117,13 @@ function task_running()
 		end
 	end
 	return #task_pool>0
+end
+
+function update_menu()
+	if btnp(❎) then
+		draw=draw_game
+		update=update_tile
+	end
 end
 
 function update_tile()
@@ -216,8 +231,8 @@ function setup_vars()
 	instructions={}
 	debug={}
 	--game states
-	update=update_tile
-	draw=draw_game
+	update=update_menu
+	draw=draw_menu
 end
 
 function setup_lab()
