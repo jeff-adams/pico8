@@ -34,6 +34,10 @@ end
 
 function _draw()
 	cls()
+	draw()
+end	
+
+function draw_game()
 	--draw labrynth
 	for column in all(lab) do
 		foreach(column,draw_tile)
@@ -44,7 +48,7 @@ function _draw()
 	--draw players
 	foreach(players,draw_tile)
 	draw_gui()
-end	
+end
 
 function draw_borders()
 	color(5)
@@ -197,6 +201,10 @@ end
 --setup
 
 function setup_vars()
+	--variables
+	ani_speed=8
+	goal=5
+	--tables
 	origin={x=19,y=10}
 	up={x=0,y=-1,flag=2}
 	down={x=0,y=1,flag=3}
@@ -204,14 +212,12 @@ function setup_vars()
 	left={x=-1,y=0,flag=0}
 	positions={{x=3,y=1},{x=5,y=1},{x=7,y=1},{x=9,y=3},{x=9,y=5},{x=9,y=7},{x=7,y=9},{x=5,y=9},{x=3,y=9},{x=1,y=7},{x=1,y=5},{x=1,y=3}}
 	invalid_space={x=0,y=0}
-	
-	ani_speed=8
-	goal=5
-	update=update_tile
 	task_pool={}
 	instructions={}
-
 	debug={}
+	--game states
+	update=update_tile
+	draw=draw_game
 end
 
 function setup_lab()
@@ -495,14 +501,14 @@ end
 
 function shift_objects(_objects,_dir,_ref)
 	local _newpos
-	if _dir.x == 0 then
+	if _dir.x == 0 then --shifting vertically
 		for _obj in all(_objects) do
 			if _obj.x==_ref then 
 				_newpos=move_direction(_obj,_dir)
 				_obj.y=wrap_item(_newpos.y,_dir.y)				 
 			end
 		end
-	else
+	else --shifting horizontally
 		for _obj in all(_objects) do
 			if _obj.y==_ref then 
 				_newpos=move_direction(_obj,_dir) 
@@ -517,7 +523,7 @@ function wrap_item(_axis,_dir)
 		--move to other side
 		_axis+=8*-(_dir)
 	end
-	return _axis
+	return flr(_axis)
 end
 
 function move_direction(_obj,_dir)
