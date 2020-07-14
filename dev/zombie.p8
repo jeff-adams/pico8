@@ -2,23 +2,53 @@ pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
 function _init()
+	globals()
+	init_scavenge()
+	init_player()
+end
+
+function _update()
+	if btnp(❎) then
+		draw_cards(5)
+	end
+	if btnp(🅾️) then
+		if #hand > 0 then
+			discard_card(hand[1])
+		end
+	end
+end
+
+function _draw()
+	cls()
+	print("draw: "..#draw,80,1,10)
+	print("discard: "..#discard,80,8,10)
+	print("deck: "..#deck,80,24,9)
+	print("▤scavenge▤",80,32,5)
+	for i=1,#scavenge do
+		print(scavenge[i].title,80,i*8+32,5)
+	end
+	print("▤▤player▤▤",1,1,12)
+	print("attack: "..atk,1,8,1)
+	print("survivors: "..surv,1,16,1)
+	for i=1,#hand do
+		print(hand[i].title,1,i*8+16,14)
+	end
+end
+-->8
+--initialize
+
+function globals()
 	shuffle_cards=shuffle
 	draw=shuffle_cards(create_draw())
 	deck=shuffle_cards(create_deck())
 	discard={}
 	hand={}
+	scavenge={}
+	trash={}
+	acts=0
+	surv=0
+	atk=0
 end
-
-function _update()
-
-end
-
-function _draw()
-	cls()
-	
-end
--->8
---initialize
 
 function create_draw()
 	local _cards=
@@ -98,16 +128,28 @@ function create_deck()
 			cost=4,
 			title="weakest link",
 			ctype="action",
-			act="trash",
-			actd="trash any cards from hand",
+			actions=
+			{
+				{
+					action=trash_action,
+					val=0,
+					desc="trash any cards from hand"
+				}
+			},
 			qty=5
 		},
 		{
 			cost=4,
 			title="reload",
 			ctype="action",
-			act="draw",
-			actd="draw 2 cards",
+			actions=
+			{
+				{
+					action=draw_action,
+					val=2,
+					desc="draw 2 cards"
+				}
+			},
 			qty=5
 		},
 	}
@@ -116,25 +158,98 @@ function create_deck()
 end
 
 function enumerate_cards(_cards)
-	local _deck={}
-	
+	local _stack={}
 	for _card in all(_cards) do
 		for i=1,_card.qty do
-			add(_deck,_card)
+			local _card=_card
+			add(_stack,_card)
 		end
 	end
 	
-	return _deck
+	return _stack
+end
+
+function init_scavenge()
+ for i=1,6 do
+ 	refresh_scavenge()
+ end
+end
+
+function init_player()
+	act=1
+	draw_cards(5)
 end
 -->8
 --tools
 
 function shuffle(objs)
 	for i=#objs,2,-1 do
-		local j=flr(rnd(i+1))
+		local j=flr(rnd(i))+1
 		objs[i],objs[j]=objs[j],objs[i]
 	end
 	return objs
+end
+-->8
+--actions
+
+function draw_action(_amount)
+	--draw an amount of cards to hand
+	draw_cards(_amount)
+end
+
+function trash_action(_amount)
+	--trash an amount of cards from hand	
+end
+-->8
+--cards
+
+function draw_cards(_amount)
+	local _drawn_cards={}
+	local _count=_amount
+	local _remain=0
+	if #draw < _amount then
+		_count=#draw
+		_remain=_amount-_count
+	end
+	for i=1,_count do
+		local _card=draw[1]
+		add(_drawn_cards,_card)
+		del(draw,draw[1])
+		update_player(_card)
+	end
+	if _remain > 0 and #discard > 0 then
+		draw=shuffle(discard)
+		discard={}
+		draw_cards(_remain)
+	end
+	add_cards(hand,_drawn_cards)
+end
+
+function discard_card(_card)
+	add(discard,_card)
+	del(hand,_card)
+end
+
+function add_cards(_to,_cards)
+	for _c in all(_cards) do
+		add(_to,_c)
+	end
+end
+
+function refresh_scavenge()
+	add(scavenge,deck[1])
+	del(deck,deck[1])
+end
+-->8
+--update
+
+function update_player(_card)
+	if _card.ctype == "survivor" then
+		surv+=_card.val
+	end
+	if _card.ctype == "weapon" then
+		atk+=_card.dmg
+	end
 end
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

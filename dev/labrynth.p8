@@ -1,12 +1,14 @@
 pico-8 cartridge // http://www.pico-8.com
-version 18
+version 29
 __lua__
 --labrynth
 --by atomicxistence
 
 --todo
+--bug: items go off the board
 --menu screen
 --player # selection
+--change indicator of unavailable tile move
 --sprite upgrade/enchance color contrast
 --music
 
@@ -51,7 +53,7 @@ function draw_game()
 end
 
 function draw_borders()
-	color(5)
+	color(cplayer.color)
 	rect(origin.x+6,origin.y+6,origin.x+80,origin.y+80)
 end
 

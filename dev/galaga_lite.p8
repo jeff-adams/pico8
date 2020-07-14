@@ -10,10 +10,12 @@ function _init()
 	dstate=dstate_menu
 	-- create player
 	player={}
-	player.sprite={192,193,194}
+	player.sprite={195,193,196}
+	player.frame=2
 	player.pos={}
 	player.pos.x,player.pos.y=40,40
 	player.is_hit=false
+	player.is_flip=false
 	player.lives=3
 end
 
@@ -36,10 +38,20 @@ end
 
 function ustate_play()
 	-- playing game
-	if btn(⬅️) then player.pos.x -= 1 end
-	if btn(➡️) then player.pos.x += 1 end
- if btn(⬆️) then player.pos.y -= 1 end
-	if btn(⬇️) then player.pos.y += 1 end
+	if btn(⬅️) then 
+		player.pos.x -= 1 
+		player.isflip=true
+	end
+	if btn(➡️) then 
+		player.pos.x += 1 
+		player.isflip=false
+	end
+ if btn(⬆️) then 
+ 	player.pos.y -= 1 
+ end
+	if btn(⬇️) then 
+		player.pos.y += 1
+	end
 end	
 
 function ustate_gameover()
@@ -49,6 +61,11 @@ end
 
 function move_player(_x,_y)
 	
+end
+
+function animate_player()
+	player.frame+=1
+	player.frame=(player.frame%3)+1
 end
 -->8
 -- draw
@@ -61,9 +78,11 @@ end
 function dstate_game()
 	-- draw game
 	cls(black)
-	spr(player.sprite[2],
+	spr(player.sprite[player.frame],
 					player.pos.x,
-					player.pos.y)
+					player.pos.y,1,1,
+					player.isflip)
+	print(player.frame)
 end
 -->8
 -- tools
