@@ -10,6 +10,7 @@ function _init()
 end
 
 function _update()
+	sec=flr(time())
 	update_state()
 end
 
@@ -30,7 +31,11 @@ function globals()
 	acts=0
 	surv=0
 	atk=0
-	can_scavenge=true
+	scvng=1
+	turns=20
+	horde=200
+	current={card={},sel=1,cards=hand}
+	sec=flr(time())
 end
 
 function create_draw()
@@ -161,6 +166,7 @@ end
 function init_player()
 	act=1
 	draw_cards(5)
+	current.card=hand[current.sel]
 end
 -->8
 --tools
@@ -233,16 +239,47 @@ end
 
 function scavenge_card(_card)
 	if surv >= _card.cost then
-		surv-= _card.cost
+		surv-=_card.cost
+		scvng-=1
 		add(discard,_card)
 		del(scavenge,_card)
-		can_scavange=false
 	end
+end
+
+function next_card()
+	card_selection(1)
+end
+
+function previous_card()
+	card_selection(-1)
+end
+
+function card_selection(_dir)
+	local _sel=current.sel
+	_sel=((_sel+_dir-1)%#current.cards)+1
+	current.card=current.cards[_sel]
+	current.sel=_sel
 end
 -->8
 --update
 
 function update_game()
+	if btnp(⬇️) then
+		next_card()
+	end
+	if btnp(⬆️) then
+		previous_card()
+	end
+	if btnp(➡️) and current.cards==hand then
+		current.cards=scavenge
+		current.sel=1
+		current.card=scavenge[1]
+	end
+	if btnp(⬅️) and current.cards==scavenge then
+		current.cards=hand
+		current.sel=1
+		current.card=hand[1]
+	end
 	if btnp(❎) then
 		draw_cards(5)
 	end
@@ -266,24 +303,91 @@ end
 
 function draw_game()
 	cls()
-	print("draw: "..#draw,80,1,10)
-	print("discard: "..#discard,80,8,10)
-	print("deck: "..#deck,80,24,9)
-	print("▤scavenge▤",80,32,5)
-	for i=1,#scavenge do
-		print(scavenge[i].title,80,i*8+32,5)
+	draw_outlines()
+	draw_stats()
+	draw_hand()
+	draw_scavenge()
+	draw_horde()
+	draw_card_desc()
+end
+
+function draw_outlines()
+	line(60,24,60,108,5)
+	rect(0,108,127,128,5)
+end
+
+function draw_stats()
+	print("survivors:"..surv,1,2,6)
+	print("attack:"..atk,52,2,6)
+	print("actions:"..act,92,2,6)
+	for i=20,1,-1 do
+		print("█",i*6-6,9,8)
 	end
-	print("▤▤player▤▤",1,1,12)
-	print("attack: "..atk,1,8,1)
-	print("survivors: "..surv,1,16,1)
+	for i=turns,1,-1 do
+		print("█",i*6-6,9,6)
+	end
+	spr(1,120,8)
+end
+
+function draw_hand()
+	print("current hand",2,24,1)
 	for i=1,#hand do
-		print(hand[i].title,1,i*8+16,14)
+		if current.cards==hand and i==current.sel then
+			if sec%2==0 then
+				print(">",2,i*8+24,13)
+			else
+				print(">",0,i*8+24,13)
+			end
+			print(hand[i].title,6,i*8+24,13)
+		else
+			print(hand[i].title,2,i*8+24,12)
+		end
 	end
 end
+
+function draw_scavenge()
+	print("scavenge for...",66,24,9)
+	for i=1,#scavenge do
+		if current.cards==scavenge and i==current.sel then
+			if sec%2==0 then
+				print(">",64,i*8+24,15)
+			else
+				print(">",66,i*8+24,15)
+			end
+			print(scavenge[i].title,72,i*8+24,15)
+		else
+			print(scavenge[i].title,66,i*8+24,10)
+		end
+	end
+end
+
+function draw_horde()
+	print("zombie horde:"..horde,58,15,8)
+end
+
+function draw_card_desc()
+	local _card=current.card
+	local _col1=current.cards==hand and 1 or 9
+	local _col2=current.cards==hand and 12 or 10
+	print(_card.title,2,110,_col2)
+	print(_card.ctype,2,116,_col1)
+	if _card.dmg != nil then
+		print("attack:".._card.dmg,2,122,_col1)
+	end
+	if _card.val != nil then
+		print("scavengers:".._card.val,2,122,_col1)
+	end
+	if _card.desc != nil then
+		print(_card.desc,2,122,_col1)
+	end
+	print(_card.cost,119,110,11)
+end
 __gfx__
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000888000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000888000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700000088000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000888888000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000000088000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700000088000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000080800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000880080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
