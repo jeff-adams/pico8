@@ -5,34 +5,16 @@ function _init()
 	globals()
 	init_scavenge()
 	init_player()
+	update_state=update_game
+	draw_state=draw_game
 end
 
 function _update()
-	if btnp(❎) then
-		draw_cards(5)
-	end
-	if btnp(🅾️) then
-		if #hand > 0 then
-			discard_card(hand[1])
-		end
-	end
+	update_state()
 end
 
 function _draw()
-	cls()
-	print("draw: "..#draw,80,1,10)
-	print("discard: "..#discard,80,8,10)
-	print("deck: "..#deck,80,24,9)
-	print("▤scavenge▤",80,32,5)
-	for i=1,#scavenge do
-		print(scavenge[i].title,80,i*8+32,5)
-	end
-	print("▤▤player▤▤",1,1,12)
-	print("attack: "..atk,1,8,1)
-	print("survivors: "..surv,1,16,1)
-	for i=1,#hand do
-		print(hand[i].title,1,i*8+16,14)
-	end
+	draw_state()
 end
 -->8
 --initialize
@@ -48,6 +30,7 @@ function globals()
 	acts=0
 	surv=0
 	atk=0
+	can_scavenge=true
 end
 
 function create_draw()
@@ -128,12 +111,12 @@ function create_deck()
 			cost=4,
 			title="weakest link",
 			ctype="action",
+			desc="trash any cards from hand",
 			actions=
 			{
 				{
 					action=trash_action,
-					val=0,
-					desc="trash any cards from hand"
+					val=0
 				}
 			},
 			qty=5
@@ -142,12 +125,12 @@ function create_deck()
 			cost=4,
 			title="reload",
 			ctype="action",
+			desc="draw 2 cards",
 			actions=
 			{
 				{
 					action=draw_action,
-					val=2,
-					desc="draw 2 cards"
+					val=2
 				}
 			},
 			qty=5
@@ -240,8 +223,35 @@ function refresh_scavenge()
 	add(scavenge,deck[1])
 	del(deck,deck[1])
 end
+
+function play_card(_card)
+	act-=1
+	for _c in all(_card.actions) do
+		_c.action(_c.val)
+	end
+end
+
+function scavenge_card(_card)
+	if surv >= _card.cost then
+		surv-= _card.cost
+		add(discard,_card)
+		del(scavenge,_card)
+		can_scavange=false
+	end
+end
 -->8
 --update
+
+function update_game()
+	if btnp(❎) then
+		draw_cards(5)
+	end
+	if btnp(🅾️) then
+		if #hand > 0 then
+			discard_card(hand[1])
+		end
+	end
+end
 
 function update_player(_card)
 	if _card.ctype == "survivor" then
@@ -249,6 +259,25 @@ function update_player(_card)
 	end
 	if _card.ctype == "weapon" then
 		atk+=_card.dmg
+	end
+end
+-->8
+--draw
+
+function draw_game()
+	cls()
+	print("draw: "..#draw,80,1,10)
+	print("discard: "..#discard,80,8,10)
+	print("deck: "..#deck,80,24,9)
+	print("▤scavenge▤",80,32,5)
+	for i=1,#scavenge do
+		print(scavenge[i].title,80,i*8+32,5)
+	end
+	print("▤▤player▤▤",1,1,12)
+	print("attack: "..atk,1,8,1)
+	print("survivors: "..surv,1,16,1)
+	for i=1,#hand do
+		print(hand[i].title,1,i*8+16,14)
 	end
 end
 __gfx__
