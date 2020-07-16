@@ -1,6 +1,16 @@
 pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
+--zombie horde
+--by atomicxistence
+
+--todo
+--bug: cards disappearing draw/discard
+--bug: buy card not update card info
+--win/lose check
+--balance scavenge
+--work on action cards
+
 function _init()
 	globals()
 	init_scavenge()
@@ -10,6 +20,7 @@ function _init()
 end
 
 function _update()
+	time_is_even=flr(time())%2==0
 	sec=flr(time()*10)
 	update_state()
 end
@@ -37,6 +48,9 @@ function globals()
 	current={card={},sel=1,cards=hand}
 	sec=flr(time()*10)
 	message=nil
+	time_is_even=flr(time())%2==0
+	is_player_turn=true
+	debug={}
 end
 
 function create_draw()
@@ -125,7 +139,7 @@ function create_deck()
 					val=0
 				}
 			},
-			qty=5
+			qty=0
 		},
 		{
 			cost=4,
@@ -139,7 +153,7 @@ function create_deck()
 					val=2
 				}
 			},
-			qty=5
+			qty=10
 		},
 	}
 	
@@ -165,12 +179,17 @@ function init_scavenge()
 end
 
 function init_player()
-	act=1
+	acts=1
+	atk=0
+	surv=0
+	hand={}
+	current.card={}
 	draw_cards(5)
-	current.card=hand[current.sel]
+	current.cards=hand
+	is_player_turn=true
 end
 -->8
---tools
+--logic
 
 function shuffle(objs)
 	for i=#objs,2,-1 do
@@ -178,6 +197,10 @@ function shuffle(objs)
 		objs[i],objs[j]=objs[j],objs[i]
 	end
 	return objs
+end
+
+function attack_horde()
+	horde-=atk
 end
 -->8
 --actions
@@ -213,11 +236,15 @@ function draw_cards(_amount)
 		draw_cards(_remain)
 	end
 	add_cards(hand,_drawn_cards)
+	current.sel=1
+	current.card=hand[1]
 end
 
-function discard_card(_card)
-	add(discard,_card)
-	del(hand,_card)
+function discard_hand()
+	for c in all(hand) do
+		add(discard,c)
+	end
+	hand={}
 end
 
 function add_cards(_to,_cards)
@@ -244,6 +271,7 @@ function scavenge_card(_card)
 		scvng-=1
 		add(discard,_card)
 		del(scavenge,_card)
+		refresh_scavenge()
 	end
 end
 
@@ -265,8 +293,15 @@ end
 --update
 
 function update_game()
-	game_btns()
-	game_messages()
+	if is_player_turn then
+		game_btns()
+		game_messages()
+	else
+		win_check()
+		discard_hand()
+		init_player()
+		turns-=1
+	end
 end
 
 function update_player(_card)
@@ -280,17 +315,19 @@ end
 
 function game_messages()
 	if current.cards==hand then
-		if sec%100==0 then
+		message="🅾️ to attack the zombie horde"
+		if time_is_even then
 			message="❎ to play an action card"
-		else
-			message="🅾️ to attack the zombie horde"
 		end
+	else
+		message="❎ to scavenge card"
 	end
 end
 
 function game_btns()
 	if btnp(⬇️) then
 		next_card()
+		debug={}
 	end
 	if btnp(⬆️) then
 		previous_card()
@@ -307,8 +344,11 @@ function game_btns()
 	end
 	if btnp(❎) then 
 		if current.card.ctype == "action"
-		and current.cards==hand then
-			for a in all(current.card.actions) do
+		and current.cards==hand 
+		and acts>0 then
+			local _card=current.card
+			discard_card(current.card)
+			for a in all(_card.actions) do
 				a.action(a.val)
 			end
 			acts-=1
@@ -318,9 +358,14 @@ function game_btns()
 		end
 	end
 	if btnp(🅾️) then
-		if #hand > 0 then
-			discard_card(hand[1])
-		end
+		attack_horde()
+		is_player_turn=false
+	end
+end
+
+function win_check()
+	if horde<=0 or turns <=0 then
+		draw_state=game_over_draw
 	end
 end
 -->8
@@ -335,6 +380,15 @@ function draw_game()
 	draw_horde()
 	draw_card_desc()
 	draw_message()
+	
+	if debug[1] != nil then
+		rect(19,59,101,#debug*8+63,11)
+		rectfill(20,60,100,#debug*8+62,0)
+		print("debug",22,62,3)
+		for i=1,#debug do
+			print(debug[i],22,i*6+62,11)
+		end
+	end
 end
 
 function draw_outlines()
@@ -346,10 +400,11 @@ end
 function draw_stats()
 	print("survivors:"..surv,2,102,6)
 	print("attack:"..atk,52,102,6)
-	print("actions:"..act,91,102,6)
+	print("actions:"..acts,91,102,6)
 end
 
 function draw_hand()
+	print("▤"..#draw.."  ▤"..#discard,2,16,1)
 	print("current hand:",2,24,13)
 	for i=1,#hand do
 		if current.cards==hand and i==current.sel then
@@ -378,6 +433,7 @@ function draw_scavenge()
 		else
 			print(scavenge[i].title,66,i*8+24,10)
 		end
+		print(scavenge[i].cost,120,i*8+24,11)
 	end
 end
 
@@ -412,8 +468,25 @@ end
 
 function draw_message()
 	if message!=nil then
-		local _x=(128-#message)/2
-		print(message,_x,0,7)
+		local _x=(128-(#message/2*8))/2
+		print(message,_x,2,7)
+	end
+	print("⬅️  ➡️",49,92,5)
+end
+
+function game_over_draw()
+	draw_game()
+	rectfill(26,33,96,66,0)
+	if horde<=199 then
+		rect(25,32,97,67,11)
+		print("congratulations",30,35,11)
+		print("you have defeated",28,50,11)
+		print("the zombie horde!",28,58,11)
+	else
+		rect(25,32,97,67,8)
+		print("game over man!",34,35,8)
+		print("the zombie horde",30,50,8)
+		print("has overrun you!",30,58,8)
 	end
 end
 __gfx__
