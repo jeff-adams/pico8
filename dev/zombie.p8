@@ -10,7 +10,7 @@ function _init()
 end
 
 function _update()
-	sec=flr(time())
+	sec=flr(time()*10)
 	update_state()
 end
 
@@ -35,7 +35,8 @@ function globals()
 	turns=20
 	horde=200
 	current={card={},sel=1,cards=hand}
-	sec=flr(time())
+	sec=flr(time()*10)
+	message=nil
 end
 
 function create_draw()
@@ -264,6 +265,30 @@ end
 --update
 
 function update_game()
+	game_btns()
+	game_messages()
+end
+
+function update_player(_card)
+	if _card.ctype == "survivor" then
+		surv+=_card.val
+	end
+	if _card.ctype == "weapon" then
+		atk+=_card.dmg
+	end
+end
+
+function game_messages()
+	if current.cards==hand then
+		if sec%100==0 then
+			message="❎ to play an action card"
+		else
+			message="🅾️ to attack the zombie horde"
+		end
+	end
+end
+
+function game_btns()
 	if btnp(⬇️) then
 		next_card()
 	end
@@ -280,22 +305,22 @@ function update_game()
 		current.sel=1
 		current.card=hand[1]
 	end
-	if btnp(❎) then
-		draw_cards(5)
+	if btnp(❎) then 
+		if current.card.ctype == "action"
+		and current.cards==hand then
+			for a in all(current.card.actions) do
+				a.action(a.val)
+			end
+			acts-=1
+		end
+		if current.cards==scavenge then
+			scavenge_card(current.card)
+		end
 	end
 	if btnp(🅾️) then
 		if #hand > 0 then
 			discard_card(hand[1])
 		end
-	end
-end
-
-function update_player(_card)
-	if _card.ctype == "survivor" then
-		surv+=_card.val
-	end
-	if _card.ctype == "weapon" then
-		atk+=_card.dmg
 	end
 end
 -->8
@@ -309,36 +334,31 @@ function draw_game()
 	draw_scavenge()
 	draw_horde()
 	draw_card_desc()
+	draw_message()
 end
 
 function draw_outlines()
-	line(60,24,60,108,5)
+	line(60,24,60,100,5)
 	rect(0,108,127,128,5)
+	rect(0,100,127,108,5)
 end
 
 function draw_stats()
-	print("survivors:"..surv,1,2,6)
-	print("attack:"..atk,52,2,6)
-	print("actions:"..act,92,2,6)
-	for i=20,1,-1 do
-		print("█",i*6-6,9,8)
-	end
-	for i=turns,1,-1 do
-		print("█",i*6-6,9,6)
-	end
-	spr(1,120,8)
+	print("survivors:"..surv,2,102,6)
+	print("attack:"..atk,52,102,6)
+	print("actions:"..act,91,102,6)
 end
 
 function draw_hand()
-	print("current hand",2,24,1)
+	print("current hand:",2,24,13)
 	for i=1,#hand do
 		if current.cards==hand and i==current.sel then
-			if sec%2==0 then
-				print(">",2,i*8+24,13)
+			if sec%5==0 then
+				print(">",2,i*8+24,6)
 			else
-				print(">",0,i*8+24,13)
+				print(">",0,i*8+24,6)
 			end
-			print(hand[i].title,6,i*8+24,13)
+			print(hand[i].title,6,i*8+24,6)
 		else
 			print(hand[i].title,2,i*8+24,12)
 		end
@@ -346,10 +366,10 @@ function draw_hand()
 end
 
 function draw_scavenge()
-	print("scavenge for...",66,24,9)
+	print("scavenge for:",66,24,9)
 	for i=1,#scavenge do
 		if current.cards==scavenge and i==current.sel then
-			if sec%2==0 then
+			if sec%5==0 then
 				print(">",64,i*8+24,15)
 			else
 				print(">",66,i*8+24,15)
@@ -362,25 +382,39 @@ function draw_scavenge()
 end
 
 function draw_horde()
+	for i=20,1,-1 do
+		print("█",i*6-6,9,8)
+	end
+	for i=turns,1,-1 do
+		print("█",i*6-6,9,6)
+	end
+	spr(1,120,8)
 	print("zombie horde:"..horde,58,15,8)
 end
 
 function draw_card_desc()
 	local _card=current.card
-	local _col1=current.cards==hand and 1 or 9
+	local _col1=current.cards==hand and 13 or 9
 	local _col2=current.cards==hand and 12 or 10
 	print(_card.title,2,110,_col2)
 	print(_card.ctype,2,116,_col1)
 	if _card.dmg != nil then
-		print("attack:".._card.dmg,2,122,_col1)
+		print("attack +".._card.dmg,2,122,_col1)
 	end
 	if _card.val != nil then
-		print("scavengers:".._card.val,2,122,_col1)
+		print("survivors +".._card.val,2,122,_col1)
 	end
 	if _card.desc != nil then
 		print(_card.desc,2,122,_col1)
 	end
 	print(_card.cost,119,110,11)
+end
+
+function draw_message()
+	if message!=nil then
+		local _x=(128-#message)/2
+		print(message,_x,0,7)
+	end
 end
 __gfx__
 00000000000888000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
