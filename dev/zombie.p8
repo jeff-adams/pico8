@@ -5,11 +5,13 @@ __lua__
 --by atomicxistence
 
 --todo
---balance scavenge
---work on action cards
+--bug: too many cards in hand
+--card graphic
 --menu
+--balance cards
 --sfx/music
---graphics
+--graphics for card types
+--animate ui
 
 function _init()
 	globals()
@@ -84,42 +86,42 @@ function create_deck()
 			title="uzi",
 			ctype="weapon",
 			dmg=5,
-			qty=10
+			qty=5
 		},
 		{
 			cost=10,
 			title="bazooka",
 			ctype="weapon",
 			dmg=25,
-			qty=2
+			qty=1
 		},
 		{
 			cost=6,
 			title="rifle",
 			ctype="weapon",
 			dmg=10,
-			qty=5
+			qty=4
 		},
 		{
 			cost=5,
 			title="shotgun",
 			ctype="weapon",
 			dmg=8,
-			qty=8
+			qty=5
 		},
 		{
 			cost=3,
 			title="couple",
 			ctype="survivor",
 			val=2,
-			qty=10
+			qty=5
 		},
 		{
 			cost=5,
 			title="trio",
 			ctype="survivor",
 			val=3,
-			qty=8
+			qty=4
 		},
 		{
 			cost=8,
@@ -154,7 +156,39 @@ function create_deck()
 					val=2
 				}
 			},
-			qty=10
+			qty=5
+		},
+		{
+			cost=12,
+			title="mortars",
+			ctype="action",
+			desc="attack+30",
+			actions=
+			{
+				{
+					action=attack_action,
+					val=30
+				}
+			},
+			qty=3
+		},
+		{
+			cost=3,
+			title="caffeine",
+			ctype="action",
+			desc="action+2, draw 1 card",
+			actions=
+			{
+				{
+					action=draw_action,
+					val=2
+				},
+				{
+					action=action_action,
+					val=1
+				}
+			},
+			qty=5
 		},
 	}
 	
@@ -174,7 +208,7 @@ function enumerate_cards(_cards)
 end
 
 function init_scavenge()
- for i=1,6 do
+ for i=1,7 do
  	refresh_scavenge()
  end
 end
@@ -207,13 +241,25 @@ end
 --actions
 
 function draw_action(_amount)
-	--draw an amount of cards to hand
 	draw_cards(_amount)
 end
 
 function trash_action(_amount)
 	--trash an amount of cards from hand	
 end
+
+function action_action(_amount)
+	acts+=_amount
+end
+
+function surv_action(_amount)
+	surv+=_amount
+end
+
+function scavenge_action(_amount)
+	scvng+=_amount
+end
+
 -->8
 --cards
 
@@ -423,7 +469,7 @@ function draw_hand()
 end
 
 function draw_scavenge()
-	print("scavenge for:",66,24,9)
+	print("scavenge for:"..#deck,66,24,9)
 	for i=1,#scavenge do
 		if current.cards==scavenge and i==current.sel then
 			if sec%5==0 then
