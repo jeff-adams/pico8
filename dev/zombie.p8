@@ -5,11 +5,11 @@ __lua__
 --by atomicxistence
 
 --todo
---bug: cards disappearing draw/discard
---bug: buy card not update card info
---win/lose check
 --balance scavenge
 --work on action cards
+--menu
+--sfx/music
+--graphics
 
 function _init()
 	globals()
@@ -50,6 +50,7 @@ function globals()
 	message=nil
 	time_is_even=flr(time())%2==0
 	is_player_turn=true
+	actioned={}
 	debug={}
 end
 
@@ -244,7 +245,16 @@ function discard_hand()
 	for c in all(hand) do
 		add(discard,c)
 	end
+	for c in all(actioned) do
+		add(discard,c)
+	end
 	hand={}
+end
+
+function discard_card()
+	add(discard,current.card)
+	del(hand,hand[current.sel])
+	current.card=current.cards[1]
 end
 
 function add_cards(_to,_cards)
@@ -259,10 +269,12 @@ function refresh_scavenge()
 end
 
 function play_card(_card)
-	act-=1
+	acts-=1
 	for _c in all(_card.actions) do
 		_c.action(_c.val)
 	end
+	add(actioned,_card)
+	del(hand,_card)
 end
 
 function scavenge_card(_card)
@@ -272,6 +284,7 @@ function scavenge_card(_card)
 		add(discard,_card)
 		del(scavenge,_card)
 		refresh_scavenge()
+		current.card=scavenge[current.sel]
 	end
 end
 
@@ -346,12 +359,8 @@ function game_btns()
 		if current.card.ctype == "action"
 		and current.cards==hand 
 		and acts>0 then
-			local _card=current.card
-			discard_card(current.card)
-			for a in all(_card.actions) do
-				a.action(a.val)
-			end
-			acts-=1
+			play_card(current.card)
+			current.card=current.cards[1]
 		end
 		if current.cards==scavenge then
 			scavenge_card(current.card)
@@ -381,14 +390,7 @@ function draw_game()
 	draw_card_desc()
 	draw_message()
 	
-	if debug[1] != nil then
-		rect(19,59,101,#debug*8+63,11)
-		rectfill(20,60,100,#debug*8+62,0)
-		print("debug",22,62,3)
-		for i=1,#debug do
-			print(debug[i],22,i*6+62,11)
-		end
-	end
+	draw_debug()
 end
 
 function draw_outlines()
@@ -487,6 +489,17 @@ function game_over_draw()
 		print("game over man!",34,35,8)
 		print("the zombie horde",30,50,8)
 		print("has overrun you!",30,58,8)
+	end
+end
+
+function draw_debug()
+	if debug[1] != nil then
+		rect(19,59,101,#debug*8+71,11)
+		rectfill(20,60,100,#debug*8+70,0)
+		print("debug",22,62,3)
+		for i=1,#debug do
+			print(debug[i],22,i*6+62,11)
+		end
 	end
 end
 __gfx__
