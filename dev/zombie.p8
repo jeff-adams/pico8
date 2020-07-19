@@ -2,11 +2,11 @@ pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
 --zombie horde
---by atomicxistence
+--by jeff adams
 
 --todo
+--improve ui
 --balance scavenge
---work on action cards
 --menu
 --sfx/music
 --graphics
@@ -15,8 +15,8 @@ function _init()
 	globals()
 	init_scavenge()
 	init_player()
-	update_state=update_game
-	draw_state=draw_game
+	update_state=update_menu
+	draw_state=draw_menu
 end
 
 function _update()
@@ -203,6 +203,10 @@ end
 function attack_horde()
 	horde-=atk
 end
+
+function printc(_text,_y,_c)
+	print(_text,(128-#_text/2*8)/2,_y,_c)
+end
 -->8
 --actions
 
@@ -245,10 +249,11 @@ function discard_hand()
 	for c in all(hand) do
 		add(discard,c)
 	end
+	hand={}
 	for c in all(actioned) do
 		add(discard,c)
 	end
-	hand={}
+	actioned={}
 end
 
 function discard_card()
@@ -269,12 +274,12 @@ function refresh_scavenge()
 end
 
 function play_card(_card)
+	del(hand,hand[current.sel])
 	acts-=1
 	for _c in all(_card.actions) do
 		_c.action(_c.val)
 	end
 	add(actioned,_card)
-	del(hand,_card)
 end
 
 function scavenge_card(_card)
@@ -355,7 +360,7 @@ function game_btns()
 		current.sel=1
 		current.card=hand[1]
 	end
-	if btnp(❎) then 
+	if btnp(❎) then
 		if current.card.ctype == "action"
 		and current.cards==hand 
 		and acts>0 then
@@ -377,6 +382,13 @@ function win_check()
 		draw_state=game_over_draw
 	end
 end
+
+function update_menu()
+	if btnp(❎) then
+		update_state=update_game
+		draw_state=draw_game
+	end
+end
 -->8
 --draw
 
@@ -394,15 +406,21 @@ function draw_game()
 end
 
 function draw_outlines()
-	line(60,24,60,100,5)
-	rect(0,108,127,128,5)
-	rect(0,100,127,108,5)
+	line(60,24,60,96,5)
+	rect(0,96,127,104,5)
+	
+	line(8,106,120,106,6)
+	line(0,114,0,127,6)
+	line(127,114,127,127,6)
+	rectfill(1,107,126,127,5)
+	spr(16,0,106)
+	spr(17,120,106)
 end
 
 function draw_stats()
-	print("survivors:"..surv,2,102,6)
-	print("attack:"..atk,52,102,6)
-	print("actions:"..acts,91,102,6)
+	print("survivors:"..surv,2,98,6)
+	print("attack:"..atk,52,98,6)
+	print("actions:"..acts,91,98,6)
 end
 
 function draw_hand()
@@ -454,18 +472,18 @@ function draw_card_desc()
 	local _card=current.card
 	local _col1=current.cards==hand and 13 or 9
 	local _col2=current.cards==hand and 12 or 10
-	print(_card.title,2,110,_col2)
-	print(_card.ctype,2,116,_col1)
+	print(_card.title,4,110,_col2)
+	print(_card.ctype,4,116,_col1)
 	if _card.dmg != nil then
-		print("attack +".._card.dmg,2,122,_col1)
+		print("attack +".._card.dmg,4,122,_col1)
 	end
 	if _card.val != nil then
-		print("survivors +".._card.val,2,122,_col1)
+		print("survivors +".._card.val,4,122,_col1)
 	end
 	if _card.desc != nil then
-		print(_card.desc,2,122,_col1)
+		print(_card.desc,4,122,_col1)
 	end
-	print(_card.cost,119,110,11)
+	print(_card.cost,118,110,11)
 end
 
 function draw_message()
@@ -473,7 +491,7 @@ function draw_message()
 		local _x=(128-(#message/2*8))/2
 		print(message,_x,2,7)
 	end
-	print("⬅️  ➡️",49,92,5)
+	print("⬅️  ➡️",49,88,5)
 end
 
 function game_over_draw()
@@ -502,6 +520,14 @@ function draw_debug()
 		end
 	end
 end
+
+function draw_menu()
+	cls()
+	printc("zombie horde",40,8)
+	printc("a survival deckbuilding game",48,2)
+	printc("❎ to start",110,6)
+	printc("code/art/audio by jeff adams",120,5)
+end
 __gfx__
 00000000000888000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000888000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -511,3 +537,11 @@ __gfx__
 00700700000088000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000080800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000880080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00066666666660000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+06655555555556600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+65555555555555560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+65555555555555560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+65555555555555560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+65555555555555560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+65555555555555560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+65555555555555560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
