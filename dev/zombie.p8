@@ -5,10 +5,8 @@ __lua__
 --by jeff adams
 
 --todo
---balance scavenge
 --bug: too many cards in hand
---card graphic
---menu
+--better name for trash action
 --balance cards
 --sfx/music
 --graphics for card types
@@ -45,7 +43,6 @@ function globals()
 	acts=0
 	surv=0
 	atk=0
-	scvng=1
 	turns=20
 	horde=200
 	current={card={},sel=1,cards=hand}
@@ -132,8 +129,8 @@ function create_deck()
 			qty=2
 		},
 		{
-			cost=4,
-			title="weakest link",
+			cost=3,
+			title="trash",
 			ctype="action",
 			desc="trash any cards from hand",
 			actions=
@@ -143,7 +140,7 @@ function create_deck()
 					val=0
 				}
 			},
-			qty=0
+			qty=5
 		},
 		{
 			cost=4,
@@ -250,7 +247,9 @@ function draw_action(_amount)
 end
 
 function trash_action(_amount)
-	--trash an amount of cards from hand	
+	current.sel=1
+	update_state=update_trash
+	draw_state=draw_trash
 end
 
 function action_action(_amount)
@@ -263,6 +262,10 @@ end
 
 function scavenge_action(_amount)
 	scvng+=_amount
+end
+
+function attack_action(_amount)
+	atk+=_amount
 end
 
 -->8
@@ -332,7 +335,6 @@ end
 function scavenge_card(_card)
 	if surv >= _card.cost then
 		surv-=_card.cost
-		scvng-=1
 		add(discard,_card)
 		del(scavenge,_card)
 		refresh_scavenge()
@@ -362,10 +364,8 @@ function update_game()
 		game_btns()
 		game_messages()
 	else
-		win_check()
 		discard_hand()
 		init_player()
-		turns-=1
 	end
 end
 
@@ -420,13 +420,17 @@ function game_btns()
 	end
 	if btnp(🅾️) then
 		attack_horde()
+		draw_state=draw_turn
+		update_state=update_turn
 		is_player_turn=false
+		turns-=1
+		win_check()
 	end
 end
 
 function win_check()
 	if horde<=0 or turns <=0 then
-		draw_state=game_over_draw
+		draw_state=draw_gameover
 	end
 end
 
@@ -434,6 +438,29 @@ function update_menu()
 	if btnp(❎) then
 		update_state=update_game
 		draw_state=draw_game
+	end
+end
+
+function update_turn()
+	if btnp(❎) then
+		update_state=update_game
+		draw_state=draw_game
+	end
+end
+
+function update_trash()
+	if btnp(❎) then
+		del(hand,hand[current.sel])
+	end
+	if btnp(🅾️) then
+		update_state=update_game
+		draw_state=draw_game
+	end
+	if btnp(⬇️) then
+		next_card()
+	end
+	if btnp(⬆️) then
+		previous_card()
 	end
 end
 -->8
@@ -474,7 +501,9 @@ function draw_hand()
 	print("▤"..#draw.."  ▤"..#discard,2,16,1)
 	print("current hand:",2,24,13)
 	for i=1,#hand do
-		if current.cards==hand and i==current.sel then
+		if current.cards==hand 
+		and i==current.sel 
+		and is_player_turn then
 			if sec%5==0 then
 				print(">",2,i*8+24,6)
 			else
@@ -490,7 +519,9 @@ end
 function draw_scavenge()
 	print("scavenge for:"..#deck,66,24,9)
 	for i=1,#scavenge do
-		if current.cards==scavenge and i==current.sel then
+		if current.cards==scavenge 
+		and i==current.sel 
+		and is_player_turn then
 			if sec%5==0 then
 				print(">",64,i*8+24,15)
 			else
@@ -505,7 +536,7 @@ function draw_scavenge()
 end
 
 function draw_horde()
-	for i=20,1,-1 do
+	for i=20,0,-1 do
 		print("█",i*6-6,9,8)
 	end
 	for i=turns,1,-1 do
@@ -534,17 +565,17 @@ function draw_card_desc()
 end
 
 function draw_message()
-	if message!=nil then
+	if message!=nil and is_player_turn then
 		local _x=(128-(#message/2*8))/2
 		print(message,_x,2,7)
 	end
 	print("⬅️  ➡️",49,88,5)
 end
 
-function game_over_draw()
+function draw_gameover()
 	draw_game()
 	rectfill(26,33,96,66,0)
-	if horde<=199 then
+	if horde<=0 then
 		rect(25,32,97,67,11)
 		print("congratulations",30,35,11)
 		print("you have defeated",28,50,11)
@@ -574,6 +605,21 @@ function draw_menu()
 	printc("a survival deckbuilding game",48,2)
 	printc("❎ to start",110,6)
 	printc("code/art/audio by jeff adams",120,5)
+end
+
+function draw_turn()
+	draw_game()
+	rect(19,33,107,91,6)
+	rectfill(20,34,106,90,0)
+	printc(turns.." turns remaining",40,12)
+	printc(horde.." zombies continue",58,8)
+	printc("to stumble toward you",64,8)
+	printc("❎ to continue",80,6)
+end
+
+function draw_trash()
+	draw_game()
+	message="❎ to trash card, 🅾️ to finish"
 end
 __gfx__
 00000000000888000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
