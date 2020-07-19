@@ -5,13 +5,9 @@ __lua__
 --by jeff adams
 
 --todo
-<<<<<<< HEAD
---improve ui
 --balance scavenge
-=======
 --bug: too many cards in hand
 --card graphic
->>>>>>> baac4ffebb8d9034931e5242d6e1951365b9e3c9
 --menu
 --balance cards
 --sfx/music
