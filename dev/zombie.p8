@@ -21,8 +21,6 @@ function _init()
 end
 
 function _update()
-	time_is_even=flr(time())%2==0
-	sec=flr(time()*10)
 	update_state()
 end
 
@@ -46,11 +44,10 @@ function globals()
 	turns=20
 	horde=200
 	current={card={},sel=1,cards=hand}
-	sec=flr(time()*10)
 	message=nil
-	time_is_even=flr(time())%2==0
 	is_player_turn=true
 	actioned={}
+	selector={ss=32,se=38,x=0,y=0,speed=2}
 	debug={}
 end
 
@@ -160,7 +157,7 @@ function create_deck()
 			cost=12,
 			title="mortars",
 			ctype="action",
-			desc="attack+30",
+			desc="attack +30",
 			actions=
 			{
 				{
@@ -174,7 +171,7 @@ function create_deck()
 			cost=3,
 			title="caffeine",
 			ctype="action",
-			desc="action+2, draw 1 card",
+			desc="action +2, draw 1 card",
 			actions=
 			{
 				{
@@ -380,12 +377,15 @@ end
 
 function game_messages()
 	if current.cards==hand then
-		message="🅾️ to attack the zombie horde"
-		if time_is_even then
-			message="❎ to play an action card"
+		if current.card.ctype == "action" and acts>0 then
+			message="❎ play action card"
+		else
+			message="🅾️ attack zombies and end turn"
 		end
+	elseif current.card.cost<=surv then
+		message="❎ scavenge card"
 	else
-		message="❎ to scavenge card"
+		message="🅾️ attack zombies and end turn"
 	end
 end
 
@@ -501,36 +501,14 @@ function draw_hand()
 	print("▤"..#draw.."  ▤"..#discard,2,16,1)
 	print("current hand:",2,24,13)
 	for i=1,#hand do
-		if current.cards==hand 
-		and i==current.sel 
-		and is_player_turn then
-			if sec%5==0 then
-				print(">",2,i*8+24,6)
-			else
-				print(">",0,i*8+24,6)
-			end
-			print(hand[i].title,6,i*8+24,6)
-		else
-			print(hand[i].title,2,i*8+24,12)
-		end
+		print(hand[i].title,2,i*8+24,12)
 	end
 end
 
 function draw_scavenge()
 	print("scavenge for:"..#deck,66,24,9)
-	for i=1,#scavenge do
-		if current.cards==scavenge 
-		and i==current.sel 
-		and is_player_turn then
-			if sec%5==0 then
-				print(">",64,i*8+24,15)
-			else
-				print(">",66,i*8+24,15)
-			end
-			print(scavenge[i].title,72,i*8+24,15)
-		else
-			print(scavenge[i].title,66,i*8+24,10)
-		end
+	for i=1,#scavenge do	
+		print(scavenge[i].title,66,i*8+24,10)
 		print(scavenge[i].cost,120,i*8+24,11)
 	end
 end
@@ -543,7 +521,7 @@ function draw_horde()
 		print("█",i*6-6,9,6)
 	end
 	spr(1,120,8)
-	print("zombie horde:"..horde,58,15,8)
+	print(horde,110,15,8)
 end
 
 function draw_card_desc()
@@ -566,8 +544,7 @@ end
 
 function draw_message()
 	if message!=nil and is_player_turn then
-		local _x=(128-(#message/2*8))/2
-		print(message,_x,2,7)
+		printc(message,2,7)
 	end
 	print("⬅️  ➡️",49,88,5)
 end
@@ -621,6 +598,11 @@ function draw_trash()
 	draw_game()
 	message="❎ to trash card, 🅾️ to finish"
 end
+
+function draw_selector()
+	selector.x=current.cards==hand and 0 or 58
+	
+end
 __gfx__
 00000000000888000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000888000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -638,3 +620,11 @@ __gfx__
 65555555555555560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 65555555555555560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 65555555555555560000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+66000000066000000066000000066000006600000660000066000000000000000000000000000000000000000000000000000000000000000000000000000000
+6c60000006c60000006c60000006c600006c600006c600006c600000000000000000000000000000000000000000000000000000000000000000000000000000
+6cc6000006cc6000006cc6000006cc60006cc60006cc60006cc60000000000000000000000000000000000000000000000000000000000000000000000000000
+6ccc600006ccc600006ccc600006ccc6006ccc6006ccc6006ccc6000000000000000000000000000000000000000000000000000000000000000000000000000
+6ccc600006ccc600006ccc600006ccc6006ccc6006ccc6006ccc6000000000000000000000000000000000000000000000000000000000000000000000000000
+6cc6000006cc6000006cc6000006cc60006cc60006cc60006cc60000000000000000000000000000000000000000000000000000000000000000000000000000
+6c60000006c60000006c60000006c600006c600006c600006c600000000000000000000000000000000000000000000000000000000000000000000000000000
+66000000066000000066000000066000006600000660000066000000000000000000000000000000000000000000000000000000000000000000000000000000
