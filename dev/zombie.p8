@@ -1,15 +1,16 @@
 pico-8 cartridge // http://www.pico-8.com
 version 29
 __lua__
---zombie horde
+--horde
 --by jeff adams
 
 --todo
 --bug: too many cards in hand
+--bug: trash all cards end action
 --better name for trash action
 --balance cards
 --sfx/music
---graphics for card types
+--graphics for cards
 --animate ui
 
 function _init()
@@ -372,7 +373,9 @@ end
 function update_game()
 	if is_player_turn then
 		game_btns()
-		game_messages()
+		if current.card != nil then
+			game_messages()
+		end
 	else
 		discard_hand()
 		init_player()
@@ -466,8 +469,9 @@ end
 function update_trash()
 	if btnp(❎) then
 		del(hand,hand[current.sel])
+		previous_card()
 	end
-	if btnp(🅾️) then
+	if #hand<=0 or btnp(🅾️) then
 		update_state=update_game
 		draw_state=draw_game
 	end
@@ -489,7 +493,9 @@ function draw_game()
 	draw_scavenge()
 	draw_selector()
 	draw_horde()
-	draw_card_desc()
+	if current.card != nil then
+		draw_card_desc()
+	end
 	draw_message()
 	
 	draw_debug()
@@ -517,11 +523,15 @@ function draw_hand()
 	print("▤"..#draw.."  ▤"..#discard,2,16,1)
 	print("current hand:",2,24,13)
 	for i=1,#hand do
+		local _card,_x=hand[i],2	
 		if current.sel==i and current.cards==hand then
-			print(hand[i].title,6,i*8+24,12)
+			_x+=4
+			print(_card.title,_x,i*8+24,12)
 		else
-			print(hand[i].title,2,i*8+24,12)
+			print(_card.title,_x,i*8+24,12)
 		end
+		pal(15,13)
+		spr(card_icon(_card),#_card.title*4+_x,i*8+22)
 	end
 end
 
