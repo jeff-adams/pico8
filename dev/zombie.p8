@@ -5,7 +5,7 @@ __lua__
 --by jeff adams
 
 --todo
---bug: too many cards in hand
+--hand navigation going up
 --balance cards
 --sfx/music
 --graphics for cards
@@ -15,8 +15,7 @@ function _init()
 	globals()
 	init_scavenge()
 	init_player()
-	update_state=update_menu
-	draw_state=draw_menu
+	change_state(update_menu,draw_menu)
 end
 
 function _update()
@@ -48,6 +47,9 @@ function globals()
 	actioned={}
 	selector={frames={32,33},x=0,y=0,speed=4}
 	debug={}
+	win=nil
+	previous={update=update_menu,draw=draw_menu}
+	b={pressed=❎,start=0,action=nil}
 end
 
 function create_draw()
@@ -136,7 +138,7 @@ function create_deck()
 					val=0
 				}
 			},
-			qty=5
+			qty=3
 		},
 		{
 			cost=4,
@@ -167,10 +169,10 @@ function create_deck()
 			qty=3
 		},
 		{
-			cost=3,
+			cost=4,
 			title="caffeine",
 			ctype="action",
-			desc="action +2, draw 1 card",
+			desc="action +2 and draw 1 card",
 			actions=
 			{
 				{
@@ -235,6 +237,29 @@ end
 function printc(_text,_y,_c)
 	print(_text,(128-#_text/2*8)/2,_y,_c)
 end
+
+function win_check()
+	if horde<=0 then
+		sfx(5)
+		win=true
+		change_state(update_gameover,draw_gameover)
+	elseif turns <=0 then
+		sfx(4)
+		win=false
+		change_state(update_gameover,draw_gameover)
+	end
+end
+
+function change_state(_update,_draw)
+	previous={update=update_state,draw=draw_state}
+	update_state=_update
+	draw_state=_draw
+end
+
+function previous_state()
+	local _p=previous
+	change_state(_p.update,_p.draw)
+end
 -->8
 --actions
 
@@ -244,8 +269,7 @@ end
 
 function trash_action(_amount)
 	current.sel=1
-	update_state=update_trash
-	draw_state=draw_trash
+	change_state(update_trash,draw_trash)
 end
 
 function action_action(_amount)
@@ -262,6 +286,23 @@ end
 
 function attack_action(_amount)
 	atk+=_amount
+end
+
+function trash_card()
+	del(hand,hand[current.sel])
+	if current.sel!=1 then
+		previous_card()
+	end
+	previous_state()
+end
+
+function end_turn()
+	attack_horde()
+	change_state(update_turn,draw_turn)
+	is_player_turn=false
+	turns-=1
+	win_check()
+	if win==nil then sfx(2) end
 end
 
 -->8
@@ -322,6 +363,7 @@ end
 function play_card(_card)
 	del(hand,hand[current.sel])
 	acts-=1
+	sfx(7)
 	for _c in all(_card.actions) do
 		_c.action(_c.val)
 	end
@@ -396,7 +438,7 @@ function game_messages()
 		if current.card.ctype == "action" and acts>0 then
 			message="❎ play action card"
 		else
-			message="🅾️ attack zombies and end turn"
+			message="hold 🅾️ attack horde / end turn"
 		end
 	elseif current.card.cost<=surv then
 		message="❎ scavenge card"
@@ -439,52 +481,49 @@ function game_btns()
 		end
 	end
 	if btnp(🅾️) then
-		attack_horde()
-		draw_state=draw_turn
-		update_state=update_turn
-		is_player_turn=false
-		turns-=1
-		win_check()
-		sfx(2)
-	end
-end
-
-function win_check()
-	if horde<=0 or turns <=0 then
-		draw_state=draw_gameover
-		update_state=update_gameover
-	end
+		b={pressed=🅾️,start=time(),action=end_turn}
+		sfx(6)
+		change_state(update_btnhold,draw_state)
+	end	
 end
 
 function update_menu()
+	if btnp(⬆️) or btnp(⬇️) then
+		current.sel=current.sel==1 and 2 or 1
+		sfx(1)
+	end
 	if btnp(❎) then
-		update_state=update_game
-		draw_state=draw_game
+		sfx(8)
+		if current.sel==1 then
+			change_state(update_turn,draw_turn)
+		else
+			change_state(update_tutorial,draw_tutorial)	
+		end
 	end
 end
 
 function update_turn()
 	if btnp(❎) then
-		update_state=update_game
-		draw_state=draw_game
+		change_state(update_game,draw_game)
+		sfx(8)
 	end
 end
 
 function update_trash()
 	if #hand<=0 then
-		update_state=update_game
-		draw_state=draw_game
+		change_state(update_game,draw_game)
 		current.cards=scavenge
 		current.sel=1
 		current.card=scavenge[1]
 	end
 	if btnp(❎) then
-		del(hand,hand[current.sel])
-		previous_card()
+		b={pressed=❎,start=time(),action=trash_card}
+		sfx(6)
+		change_state(update_btnhold,draw_state)
 	end
 	if btnp(🅾️) then
-		update_state=update_game
-		draw_state=draw_game
+		sfx(8)
+		change_state(update_game,draw_game)
 	end
 	if btnp(⬇️) then
 		next_card()
@@ -496,10 +535,29 @@ end
 
 function update_gameover()
 	if btnp(❎) then
-		update_state=update_menu
-		draw_state=draw_menu
+		_init()
 	end
 end
+
+function update_btnhold()
+	if btn(b.pressed) then
+		if time()-b.start>=1 then
+			b.action()
+		end
+	else
+		sfx(-1)
+		previous_state()
+	end
+end
+
+function update_tutorial()
+	if btnp(🅾️) then
+		b={pressed=🅾️,start=time(),action=function() change_state(update_menu,draw_menu) end}
+		sfx(6)
+		change_state(update_btnhold,draw_tutorial)
+	end
+end
+
 -->8
 --draw
 
@@ -540,9 +598,11 @@ end
 function draw_hand()
 	print("▤"..#draw.."  ▤"..#discard,2,16,1)
 	print("current hand:",2,24,13)
-	for i=1,#hand do
-		local _card,_x=hand[i],2	
-		if current.sel==i and current.cards==hand then
+	local _showncards=min(7,#hand)
+	local _offset=current.sel>7 and current.sel-7 or 0
+	for i=1,_showncards do
+		local _card,_x=hand[i+_offset],2	
+		if current.sel==i+_offset and current.cards==hand then
 			_x+=4
 			print(_card.title,_x,i*8+24,12)
 		else
@@ -609,7 +669,7 @@ end
 function draw_gameover()
 	draw_game()
 	rectfill(26,33,96,66,0)
-	if horde<=0 then
+	if win then
 		rect(25,32,97,67,11)
 		print("congratulations",30,35,11)
 		print("you have defeated",28,50,11)
@@ -635,10 +695,14 @@ end
 
 function draw_menu()
 	cls()
-	printc("zombie horde",40,8)
+	printc("horde",40,8)
 	printc("a survival deckbuilding game",48,2)
-	printc("❎ to start",110,6)
-	printc("code/art by jeff adams",120,5)
+	print("start",40,90,6)
+	print("instructions",40,100,6)
+	local _ypos=current.sel==1 and 88 or 98
+	local frame=((flr(time()*selector.speed)-1)%#selector.frames)+1
+	spr(selector.frames[frame],32,_ypos)
+	printc("code/art/audio by jeff adams",120,5)
 end
 
 function draw_turn()
@@ -653,14 +717,49 @@ end
 
 function draw_trash()
 	draw_game()
-	message="❎ to trash card, 🅾️ to finish"
+	message="hold ❎ trash card / 🅾️ finish"
 end
 
 function draw_selector()
 	selector.x=current.cards==hand and 0 or 62
-	selector.y=current.sel*8+22
+	selector.y=mid(22,current.sel*8+22,78)
 	local frame=((flr(time()*selector.speed)-1)%#selector.frames)+1
 	spr(selector.frames[frame],selector.x,selector.y)
+end
+
+function draw_tutorial()
+	cls()
+	color(12)
+	print("you start with a deck of 10",2,2)
+	print("cards. each turn you draw",2,8)
+	print("5 cards from your deck.",2,14)
+ 
+ color(10)
+	print("add new cards to your deck by",2,22)
+	print("scavenging them with your",2,28)
+	print("survivor cards.",2,34)
+	pal(15,9)
+	color(10)
+	spr(3,2,40)
+	print("= survivor card",13,42)
+	spr(4,2,46)
+	print("= weapon card",13,48)
+	spr(5,2,52)
+	print("= action card",13,54)
+	
+	color(8)
+	print("the goal of the game is to",2,64)
+	print("gain enough firepower to kill",2,70)
+	print("the entire zombie horde before",2,76)
+	print("your 20 turns run out.",2,82)
+	
+	color(6)
+	print("messages about controls will",2,92)
+	print("appear at the top of the screen.",2,98)
+	print("some interactions will require",2,104)
+	print("holding down the button.",2,110)
+	
+	printc("hold 🅾️ return to menu",120,5)
 end
 __gfx__
 00000000000888000008880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -821,3 +920,8 @@ __sfx__
 000200001c7301e730207302273000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000c7500c750197502575000000097500575000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000800003171036710000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000a00000505005050050500005000050000500005000050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000a000017050190501b0501d05020050200102005020010200502001020050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000c00000c7200d7200e7200f72010720117201272013720147500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0008000012130101300d1301515017150000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00010000165501655019550195501b5501b5500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
