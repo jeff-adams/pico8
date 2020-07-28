@@ -5,10 +5,12 @@ __lua__
 --by jeff adams
 
 --todo
---hand navigation going up
+--hand navigation going up???
+--sfx for attacking
+--hard mode with events?
+--dpad support?
 --balance cards
---sfx/music
---graphics for cards
+--music
 --animate ui
 
 function _init()
@@ -215,8 +217,8 @@ function init_player()
 	surv=0
 	hand={}
 	current.card={}
-	draw_cards(5)
-	current.cards=hand
+	draw_cards(10)
+	current.cards=scavenge
 	is_player_turn=true
 end
 -->8
