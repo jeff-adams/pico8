@@ -4,14 +4,23 @@ __lua__
 --horde
 --by jeff adams
 
---todo
---hand navigation going up???
---sfx for attacking
---hard mode with events?
---dpad support?
---balance cards
---music
+--…………work items………………
+
+--◆juicy
 --animate ui
+--particles
+--animate turn end
+--sfx for attacking
+--splash page pixel art
+
+--◆fixes
+--confirm menu for turn end
+--balance cards
+
+--◆extras
+--hard mode with events
+--dpad support
+--music
 
 function _init()
 	globals()
@@ -52,6 +61,7 @@ function globals()
 	win=nil
 	previous={update=update_menu,draw=draw_menu}
 	b={pressed=❎,start=0,action=nil}
+	showncards_start=0
 end
 
 function create_draw()
@@ -218,8 +228,9 @@ function init_player()
 	hand={}
 	current.card={}
 	draw_cards(10)
-	current.cards=scavenge
+	current.cards=hand
 	is_player_turn=true
+	showcards_start=0
 end
 -->8
 --logic
@@ -322,7 +333,6 @@ function draw_cards(_amount)
 		local _card=draw[1]
 		add(_drawn_cards,_card)
 		del(draw,draw[1])
-		update_player(_card)
 	end
 	if _remain > 0 and #discard > 0 then
 		draw=shuffle(discard)
@@ -363,13 +373,26 @@ function refresh_scavenge()
 end
 
 function play_card(_card)
-	del(hand,hand[current.sel])
-	acts-=1
-	sfx(7)
-	for _c in all(_card.actions) do
-		_c.action(_c.val)
+	if _card.ctype == "survivor" then
+		surv+=_card.val
+		card_played(_card)
+	elseif _card.ctype == "weapon" then
+		atk+=_card.dmg
+		card_played(_card)
+	elseif acts>0 then
+		acts-=1
+		for _c in all(_card.actions) do
+			_c.action(_c.val)
+		end
+		card_played(_card)
 	end
+end
+
+function card_played(_card)
+	sfx(7)
+	del(hand,hand[current.sel])
 	add(actioned,_card)
+	change_current_card()
 end
 
 function scavenge_card(_card)
@@ -399,6 +422,15 @@ function card_selection(_dir)
 	sfx(0)
 end
 
+function change_current_card()
+	local _sel=current.sel
+	if _sel>#current.cards then
+		_sel=#current.cards
+	end
+	add(debug,_sel)
+	current.card=current.cards[_sel]
+end
+
 function card_icon(_card)
 	if _card.ctype=="survivor" then
 		return 3
@@ -426,15 +458,6 @@ function update_game()
 	end
 end
 
-function update_player(_card)
-	if _card.ctype == "survivor" then
-		surv+=_card.val
-	end
-	if _card.ctype == "weapon" then
-		atk+=_card.dmg
-	end
-end
-
 function game_messages()
 	if current.cards==hand then
 		if current.card.ctype == "action" and acts>0 then
@@ -454,7 +477,6 @@ end
 function game_btns()
 	if btnp(⬇️) then
 		next_card()
-		debug={}
 	end
 	if btnp(⬆️) then
 		previous_card()
@@ -462,21 +484,20 @@ function game_btns()
 	if btnp(➡️) and current.cards==hand then
 		current.cards=scavenge
 		current.sel=1
+		showncards_start=0
 		current.card=scavenge[1]
 		sfx(1)
 	end
 	if btnp(⬅️) and current.cards==scavenge and #hand>0 then
 		current.cards=hand
 		current.sel=1
+		showncards_start=0
 		current.card=hand[1]
 		sfx(1)
 	end
 	if btnp(❎) then
-		if current.card.ctype == "action"
-		and current.cards==hand 
-		and acts>0 then
+		if current.cards==hand then
 			play_card(current.card)
-			current.card=current.cards[1]
 		end
 		if current.cards==scavenge then
 			scavenge_card(current.card)
@@ -600,11 +621,18 @@ end
 function draw_hand()
 	print("▤"..#draw.."  ▤"..#discard,2,16,1)
 	print("current hand:",2,24,13)
-	local _showncards=min(7,#hand)
-	local _offset=current.sel>7 and current.sel-7 or 0
-	for i=1,_showncards do
-		local _card,_x=hand[i+_offset],2	
-		if current.sel==i+_offset and current.cards==hand then
+	if current.sel>showncards_start+7 then
+		showncards_start=current.sel-7
+	end
+	if current.sel<showncards_start+1 then
+		showncards_start=max(0,current.sel-1)
+	end
+	add(debug,"sel="..current.sel.." srt="..showncards_start+1)
+	for i=1,7 do
+		local _o=showncards_start+i
+		local _card,_x=hand[_o],2
+		add(debug,(_o)..": ".._card.title)
+		if current.sel==_o and current.cards==hand then
 			_x+=4
 			print(_card.title,_x,i*8+24,12)
 		else
@@ -693,6 +721,7 @@ function draw_debug()
 			print(debug[i],22,i*6+62,11)
 		end
 	end
+	debug={}
 end
 
 function draw_menu()
@@ -724,7 +753,7 @@ end
 
 function draw_selector()
 	selector.x=current.cards==hand and 0 or 62
-	selector.y=mid(22,current.sel*8+22,78)
+	selector.y=mid(22,(current.sel-showncards_start)*8+22,78)
 	local frame=((flr(time()*selector.speed)-1)%#selector.frames)+1
 	spr(selector.frames[frame],selector.x,selector.y)
 end
