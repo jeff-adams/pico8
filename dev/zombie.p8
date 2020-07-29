@@ -6,7 +6,7 @@ __lua__
 
 --…………work items………………
 
---◆juicy
+--◆juices
 --animate ui
 --particles
 --animate turn end
@@ -35,6 +35,7 @@ end
 
 function _draw()
 	draw_state()
+	draw_debug()
 end
 -->8
 --initialize
@@ -56,7 +57,7 @@ function globals()
 	message=nil
 	is_player_turn=true
 	actioned={}
-	selector={frames={32,33},x=0,y=0,speed=4}
+	selector={frames={32,33},speed=4}
 	debug={}
 	win=nil
 	previous={update=update_menu,draw=draw_menu}
@@ -227,7 +228,7 @@ function init_player()
 	surv=0
 	hand={}
 	current.card={}
-	draw_cards(10)
+	draw_cards(5)
 	current.cards=hand
 	is_player_turn=true
 	showcards_start=0
@@ -590,14 +591,13 @@ function draw_game()
 	draw_stats()
 	draw_hand()
 	draw_scavenge()
-	draw_selector()
 	draw_horde()
 	if current.card != nil then
 		draw_card_desc()
+		local _x=current.cards==hand and 0 or 62
+		draw_selector(_x,22,8)
 	end
 	draw_message()
-	
-	draw_debug()
 end
 
 function draw_outlines()
@@ -627,11 +627,9 @@ function draw_hand()
 	if current.sel<showncards_start+1 then
 		showncards_start=max(0,current.sel-1)
 	end
-	add(debug,"sel="..current.sel.." srt="..showncards_start+1)
-	for i=1,7 do
+	for i=1,min(7,#hand) do
 		local _o=showncards_start+i
 		local _card,_x=hand[_o],2
-		add(debug,(_o)..": ".._card.title)
 		if current.sel==_o and current.cards==hand then
 			_x+=4
 			print(_card.title,_x,i*8+24,12)
@@ -730,9 +728,7 @@ function draw_menu()
 	printc("a survival deckbuilding game",48,2)
 	print("start",40,90,6)
 	print("instructions",40,100,6)
-	local _ypos=current.sel==1 and 88 or 98
-	local frame=((flr(time()*selector.speed)-1)%#selector.frames)+1
-	spr(selector.frames[frame],32,_ypos)
+	draw_selector(32,78,10)
 	printc("code/art/audio by jeff adams",120,5)
 end
 
@@ -751,11 +747,10 @@ function draw_trash()
 	message="hold ❎ trash card / 🅾️ finish"
 end
 
-function draw_selector()
-	selector.x=current.cards==hand and 0 or 62
-	selector.y=mid(22,(current.sel-showncards_start)*8+22,78)
+function draw_selector(_x,_yoffset,_space)
+ local _y=(current.sel-showncards_start)*_space+_yoffset
 	local frame=((flr(time()*selector.speed)-1)%#selector.frames)+1
-	spr(selector.frames[frame],selector.x,selector.y)
+	spr(selector.frames[frame],_x,_y)
 end
 
 function draw_tutorial()
