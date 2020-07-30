@@ -428,7 +428,6 @@ function change_current_card()
 	if _sel>#current.cards then
 		_sel=#current.cards
 	end
-	add(debug,_sel)
 	current.card=current.cards[_sel]
 end
 
@@ -461,10 +460,10 @@ end
 
 function game_messages()
 	if current.cards==hand then
-		if current.card.ctype == "action" and acts>0 then
-			message="❎ play action card"
-		else
-			message="hold 🅾️ attack horde / end turn"
+		local _ctype=current.card.ctype
+		message="❎ play ".._ctype.." card"
+		if _ctype == "action" and acts<0 then
+			message="need +actions to play"
 		end
 	elseif current.card.cost<=surv then
 		message="❎ scavenge card"
