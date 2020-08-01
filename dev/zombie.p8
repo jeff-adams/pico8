@@ -14,8 +14,6 @@ __lua__
 --splash page pixel art
 
 --◆fixes
---played action card not del
---confirm menu for turn end
 --balance cards
 
 --◆extras
@@ -64,6 +62,7 @@ function globals()
 	previous={update=update_menu,draw=draw_menu}
 	b={pressed=❎,start=0,action=nil}
 	showncards_start=0
+	cardicons={survivor=3,weapon=4,action=5}
 end
 
 function create_draw()
@@ -275,6 +274,16 @@ function previous_state()
 	local _p=previous
 	change_state(_p.update,_p.draw)
 end
+
+function cards_contain(_cards,_ctype)
+	local _result=false
+	for _c in all(_cards) do
+		if _c.ctype==_ctype then
+			_result=true
+		end
+	end
+	return _result
+end
 -->8
 --actions
 
@@ -375,18 +384,18 @@ function refresh_scavenge()
 end
 
 function play_card(_card)
-	if _card.ctype == "survivor" then
+	if _card.ctype=="survivor" then
 		surv+=_card.val
 		card_played(_card)
-	elseif _card.ctype == "weapon" then
+	elseif _card.ctype=="weapon" then
 		atk+=_card.dmg
 		card_played(_card)
 	elseif acts>0 then
 		acts-=1
+		card_played(_card)
 		for _c in all(_card.actions) do
 			_c.action(_c.val)
 		end
-		card_played(_card)
 	end
 end
 
@@ -429,21 +438,13 @@ function change_current_card()
 	if _sel>#current.cards then
 		_sel=#current.cards
 	end
+	if _sel<=0 then
+		change_state(update_freeze,draw_game)
+		current.cards=scavenge
+		_sel=1
+	end
 	current.sel=_sel
 	current.card=current.cards[_sel]
-end
-
-function card_icon(_card)
-	if _card.ctype=="survivor" then
-		return 3
-	end
-	if _card.ctype=="weapon" then
-		return 4
-	end
-	if _card.ctype=="action" then
-		return 5
-	end
-	return 6
 end
 -->8
 --update
@@ -465,12 +466,12 @@ function game_messages()
 		local _ctype=current.card.ctype
 		message="❎ play ".._ctype.." card"
 		if _ctype == "action" and acts<0 then
-			message="need +actions to play"
+			message="+actions to play card"
 		end
 	elseif current.card.cost<=surv then
 		message="❎ scavenge card"
 	elseif current.card.cost>surv then
-		message="need +survivors to scavenge card"
+		message="+survivors to scavenge card"
 	else
 		message="🅾️ attack zombies and end turn"
 	end
@@ -479,6 +480,7 @@ end
 function game_btns()
 	if btnp(⬇️) then
 		next_card()
+		debug={}
 	end
 	if btnp(⬆️) then
 		previous_card()
@@ -500,15 +502,19 @@ function game_btns()
 	if btnp(❎) then
 		if current.cards==hand then
 			play_card(current.card)
-		end
-		if current.cards==scavenge then
+		elseif current.cards==scavenge then
 			scavenge_card(current.card)
 		end
 	end
 	if btnp(🅾️) then
-		b={pressed=🅾️,start=time(),action=end_turn}
-		sfx(6)
-		change_state(update_btnhold,draw_state)
+		--prompt if player has actions
+		if cards_contain(hand,"action") and acts>0 then
+			cmessage="you still have actions"
+			current.sel=1
+			change_state(update_confirm,draw_confirm)
+		else
+			end_turn()
+		end
 	end	
 end
 
@@ -583,6 +589,29 @@ function update_tutorial()
 	end
 end
 
+function update_freeze()
+	for i=1,20 do
+	--freeze input
+		flip()
+	end
+	previous_state()
+end
+
+function update_confirm()
+	if btnp(⬆️) or btnp(⬇️) then
+		current.sel=current.sel==1 and 2 or 1
+		sfx(1)
+	end
+	if btnp(❎) then
+		sfx(8)
+		if current.sel==1 then
+			end_turn()
+		else
+			previous_state()
+		end
+	end
+end
+
 -->8
 --draw
 
@@ -596,21 +625,24 @@ function draw_game()
 	if current.card != nil then
 		draw_card_desc()
 		local _x=current.cards==hand and 0 or 62
-		draw_selector(_x,22,8)
+		draw_selector(_x,22,8,showncards_start)
 	end
 	draw_message()
 end
 
 function draw_outlines()
+	--hand/scavenge divider to box
 	line(60,24,60,96,5)
 	rect(0,96,127,104,5)
-	
+	--top of card for description
 	line(8,106,120,106,6)
 	line(0,114,0,127,6)
 	line(127,114,127,127,6)
 	rectfill(1,107,126,127,5)
 	spr(16,0,106)
 	spr(17,120,106)
+	--nav buttons
+	print("⬅️  ➡️",49,88,5)
 end
 
 function draw_stats()
@@ -638,7 +670,7 @@ function draw_hand()
 			print(_card.title,_x,i*8+24,12)
 		end
 		pal(15,13)
-		spr(card_icon(_card),#_card.title*4+_x,i*8+22)
+		spr(cardicons[_card.ctype],#_card.title*4+_x,i*8+22)
 	end
 end
 
@@ -653,7 +685,7 @@ function draw_scavenge()
 			print(_card.title,_x,i*8+24,10)
 		end
 		pal(15,9)
-		spr(card_icon(_card),#_card.title*4+_x,i*8+22)
+		spr(cardicons[_card.ctype],#_card.title*4+_x,i*8+22)
 		print(_card.cost,120,i*8+24,11)
 	end
 	pal()
@@ -661,11 +693,15 @@ end
 
 function draw_horde()	
 	--draw turns meter
+	rectfill(1,9,113,13,5)
 	rectfill(2,10,112,12,8)
 	rectfill(2,10,112/20*turns,12,6)
+	--draw horde count
+	--rectfill(110,13,124,22,5)
+	print(horde,112,16,8)
 	--draw zombie
 	palt(15)
-	spr(6,111,1,2,2)
+	spr(6,111,0,2,2)
 	palt()
 end
 
@@ -689,9 +725,8 @@ end
 
 function draw_message()
 	if message!=nil and is_player_turn then
-		printc(message,2,7)
+		print(message,1,2,7)
 	end
-	print("⬅️  ➡️",49,88,5)
 end
 
 function draw_gameover()
@@ -733,8 +768,7 @@ end
 
 function draw_turn()
 	draw_game()
-	rect(19,33,107,91,6)
-	rectfill(20,34,106,90,0)
+	draw_popup(56,0,6)
 	printc(turns.." turns remaining",40,12)
 	printc(horde.." zombies continue",58,8)
 	printc("to stumble toward you",64,8)
@@ -746,8 +780,11 @@ function draw_trash()
 	message="hold ❎ trash card / 🅾️ finish"
 end
 
-function draw_selector(_x,_yoffset,_space)
- local _y=(current.sel-showncards_start)*_space+_yoffset
+function draw_selector(_x,_yoffset,_space,_shown_start)
+	if not _shown_start then
+		_shown_start=0
+	end
+ local _y=(current.sel-_shown_start)*_space+_yoffset
 	local frame=((flr(time()*selector.speed)-1)%#selector.frames)+1
 	spr(selector.frames[frame],_x,_y)
 end
@@ -785,6 +822,19 @@ function draw_tutorial()
 	print("holding down the button.",2,110)
 	
 	printc("hold 🅾️ return to menu",120,5)
+end
+
+function draw_popup(_h,_c,_oc)
+	rectfill(9,64-_h/2-1,117,64+_h/2+1,_oc)
+	rectfill(10,64-_h/2,116,64+_h/2,_c)	
+end
+
+function draw_confirm()	
+	draw_popup(40,0,9)
+	printc(cmessage,50,9)
+	print("continue",42,60,5)
+	print("return",42,68,5)
+	draw_selector(34,50,8)
 end
 __gfx__
 000000000008880000088800000000000000000000000000ffff00000000ffff0000000000000000000000000000000000000000000000000000000000000000
