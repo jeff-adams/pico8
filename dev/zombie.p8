@@ -7,8 +7,9 @@ __lua__
 --…………work items………………
 
 --◆juices
---animate ui
---particles
+--animate message change
+--animate card movement
+--particles for trashing
 --animate turn end
 --sfx for attacking
 --splash page pixel art
@@ -23,6 +24,7 @@ __lua__
 
 function _init()
 	globals()
+	timers()
 	init_scavenge()
 	init_player()
 	change_state(update_menu,draw_menu)
@@ -33,8 +35,12 @@ function _update()
 end
 
 function _draw()
-	draw_state()
-	draw_debug()
+	if fading>0 then 
+		fadeout() 
+	else
+		draw_state()
+		draw_debug()
+	end
 end
 -->8
 --initialize
@@ -53,7 +59,8 @@ function globals()
 	turns=20
 	horde=200
 	current={card={},sel=1,cards=hand}
-	message=nil
+	messages=nil
+	messi=1
 	is_player_turn=true
 	played={}
 	selector={frames={32,33},speed=4}
@@ -63,6 +70,14 @@ function globals()
 	b={pressed=❎,start=0,action=nil}
 	showncards_start=0
 	cardicons={survivor=3,weapon=4,action=5}
+	numbers={}
+end
+
+function timers()
+	discarding=0
+	fading=0
+	messaging=0
+	turning=0
 end
 
 function create_draw()
@@ -248,8 +263,25 @@ function attack_horde()
 	horde-=atk
 end
 
-function printc(_text,_y,_c)
-	print(_text,(128-#_text/2*8)/2,_y,_c)
+function printc(_text,_y,_c,_oc)
+	local _x=(127-#_text/2*8)/2
+	if _oc then
+		printo(_text,_x,_y,_c,_oc)
+	else
+		print(_text,_x,_y,_c)
+	end
+end
+
+function printo(_text,_x,_y,_c,_oc)
+	print(_text,_x+1,_y-1,_oc)
+	print(_text,_x+1,_y,_oc)
+	print(_text,_x+1,_y+1,_oc)
+	print(_text,_x,_y+1,_oc)
+	print(_text,_x-1,_y+1,_oc)
+	print(_text,_x-1,_y,_oc)
+	print(_text,_x-1,_y-1,_oc)
+	print(_text,_x,_y-1,_oc)
+	print(_text,_x,_y,_c)
 end
 
 function win_check()
@@ -293,6 +325,7 @@ end
 
 function trash_action(_amount)
 	current.sel=1
+	selector.frames={34,35}
 	change_state(update_trash,draw_trash)
 end
 
@@ -327,6 +360,26 @@ function end_turn()
 	turns-=1
 	win_check()
 	if win==nil then sfx(2) end
+end
+
+function fadeout()
+local _fadespeed=4
+local _fade,_c,_p={[0]=0,17,18,19,20,16,22,6,24,25,9,27,28,29,29,31,0,0,16,17,16,16,5,0,2,4,0,3,1,18,2,4}
+  fading+=1
+  if fading%_fadespeed==1 then
+    for i=0,15 do
+      _c=peek(24336+i)
+      if (_c>=128) _c-=112
+      _p=_fade[_c]
+      if (_p>=16) _p+=112
+      pal(i,_p,1)
+    end
+    if fading==7*_fadespeed+1 then
+      cls()
+      pal()
+      fading=0
+    end
+  end
 end
 
 -->8
@@ -367,6 +420,7 @@ function discard_hand()
 end
 
 function discard_card()
+	discarding=time()+1
 	add(discard,current.card)
 	del(hand,hand[current.sel])
 	current.card=current.cards[1]
@@ -386,12 +440,15 @@ end
 function play_card(_card)
 	if _card.ctype=="survivor" then
 		surv+=_card.val
+		add(numbers,{t="+".._card.val,x=40,y=98,c=12,oc=0,life=30})
 		card_played(_card)
 	elseif _card.ctype=="weapon" then
 		atk+=_card.dmg
+		add(numbers,{t="+".._card.dmg,x=80,y=98,c=12,oc=0,life=30})
 		card_played(_card)
 	elseif acts>0 then
 		acts-=1
+		add(numbers,{t="-1",x=121,y=98,c=12,oc=0,life=30})
 		card_played(_card)
 		for _c in all(_card.actions) do
 			_c.action(_c.val)
@@ -409,6 +466,7 @@ end
 function scavenge_card(_card)
 	if surv >= _card.cost then
 		surv-=_card.cost
+		discarding=time()+1
 		add(discard,_card)
 		del(scavenge,_card)
 		refresh_scavenge()
@@ -439,6 +497,7 @@ function change_current_card()
 		_sel=#current.cards
 	end
 	if _sel<=0 then
+		freeze=time()+1
 		change_state(update_freeze,draw_game)
 		current.cards=scavenge
 		_sel=1
@@ -451,6 +510,7 @@ end
 
 function update_game()
 	if is_player_turn then
+		turning+=1
 		game_btns()
 		if current.card != nil then
 			game_messages()
@@ -458,22 +518,24 @@ function update_game()
 	else
 		discard_hand()
 		init_player()
+		turning=0
 	end
 end
 
 function game_messages()
 	if current.cards==hand then
 		local _ctype=current.card.ctype
-		message="❎ play ".._ctype.." card"
+		messages={"❎ play ".._ctype.." card"}
 		if _ctype == "action" and acts<0 then
-			message="+actions to play card"
+			messages={"+actions to play card"}
 		end
 	elseif current.card.cost<=surv then
-		message="❎ scavenge card"
+		messages={"❎ scavenge card"}
 	elseif current.card.cost>surv then
-		message="+survivors to scavenge card"
-	else
-		message="🅾️ attack zombies and end turn"
+		messages={"+survivors to scavenge card"}
+	end
+	if turning>=600 then
+		add(messages,"🅾️ attack horde and end turn")
 	end
 end
 
@@ -526,8 +588,10 @@ function update_menu()
 	if btnp(❎) then
 		sfx(8)
 		if current.sel==1 then
+			fadeout()
 			change_state(update_turn,draw_turn)
 		else
+			fadeout()
 			change_state(update_tutorial,draw_tutorial)	
 		end
 	end
@@ -545,6 +609,7 @@ function update_trash()
 		change_state(update_game,draw_game)
 		current.cards=scavenge
 		current.sel=1
+		selector.frames={32,33}
 		current.card=scavenge[1]
 	end
 	if btnp(❎) then
@@ -554,6 +619,7 @@ function update_trash()
 	end
 	if btnp(🅾️) then
 		sfx(8)
+		selector.frames={32,33}
 		change_state(update_game,draw_game)
 	end
 	if btnp(⬇️) then
@@ -590,11 +656,9 @@ function update_tutorial()
 end
 
 function update_freeze()
-	for i=1,20 do
-	--freeze input
-		flip()
+	if freeze<time() then
+		previous_state()
 	end
-	previous_state()
 end
 
 function update_confirm()
@@ -605,9 +669,9 @@ function update_confirm()
 	if btnp(❎) then
 		sfx(8)
 		if current.sel==1 then
-			end_turn()
-		else
 			previous_state()
+		else
+			end_turn()
 		end
 	end
 end
@@ -620,6 +684,7 @@ function draw_game()
 	draw_outlines()
 	draw_stats()
 	draw_hand()
+	draw_pile()
 	draw_scavenge()
 	draw_horde()
 	if current.card != nil then
@@ -628,6 +693,7 @@ function draw_game()
 		draw_selector(_x,22,8,showncards_start)
 	end
 	draw_message()
+	draw_numbers()
 end
 
 function draw_outlines()
@@ -652,7 +718,6 @@ function draw_stats()
 end
 
 function draw_hand()
-	print("▤"..#draw.."  ▤"..#discard,2,16,1)
 	print("current hand:",2,24,13)
 	if current.sel>showncards_start+7 then
 		showncards_start=current.sel-7
@@ -664,7 +729,7 @@ function draw_hand()
 		local _o=showncards_start+i
 		local _card,_x=hand[_o],2
 		if current.sel==_o and current.cards==hand then
-			_x+=4
+			_x+=6
 			print(_card.title,_x,i*8+24,12)
 		else
 			print(_card.title,_x,i*8+24,12)
@@ -674,12 +739,23 @@ function draw_hand()
 	end
 end
 
+function draw_pile()
+	local _c=1
+	if discarding>time() then
+		local _xoff=flr(#discard/10)>0 and 4 or 0
+		rectfill(19,15,31+_xoff,21,9)
+		_c=10
+	end
+	print("▤"..#draw,2,16,1)
+	print("▤"..#discard,20,16,_c)
+end
+
 function draw_scavenge()
 	print("scavenge for:",66,24,9)
 	for i=1,#scavenge do
 		local _card,_x=scavenge[i],66	
 		if current.sel==i and current.cards==scavenge then	
-			_x+=2
+			_x+=4
 			print(_card.title,_x,i*8+24,10)
 		else
 			print(_card.title,_x,i*8+24,10)
@@ -724,8 +800,14 @@ function draw_card_desc()
 end
 
 function draw_message()
-	if message!=nil and is_player_turn then
-		print(message,1,2,7)
+	if messages!=nil and is_player_turn then
+		messaging+=1
+		if messaging>45 then
+			messi+=1
+			messi=(messi-1)%#messages+1
+			messaging=0
+		end
+		print(messages[messi],1,2,7)
 	end
 end
 
@@ -777,7 +859,7 @@ end
 
 function draw_trash()
 	draw_game()
-	message="hold ❎ trash card / 🅾️ finish"
+	messages={"hold ❎ trash card","🅾️ to finish trashing"}
 end
 
 function draw_selector(_x,_yoffset,_space,_shown_start)
@@ -818,10 +900,10 @@ function draw_tutorial()
 	color(6)
 	print("messages about controls will",2,92)
 	print("appear at the top of the screen.",2,98)
-	print("some interactions will require",2,104)
+	print("some interactions may require",2,104)
 	print("holding down the button.",2,110)
 	
-	printc("hold 🅾️ return to menu",120,5)
+	printc("🅾️ return to menu",120,5)
 end
 
 function draw_popup(_h,_c,_oc)
@@ -832,9 +914,20 @@ end
 function draw_confirm()	
 	draw_popup(40,0,9)
 	printc(cmessage,50,9)
-	print("continue",42,60,5)
-	print("return",42,68,5)
-	draw_selector(34,50,8)
+	print("return",42,62,5)
+	print("confirm end turn",42,70,5)
+	draw_selector(34,52,8)
+end
+
+function draw_numbers()
+	for _k,_v in pairs(numbers) do
+		printo(_v.t,_v.x,_v.y,_v.c,_v.oc)
+		_v.y-=1
+		_v.life-=1
+		if _v.life<=0 then
+			deli(numbers,_k)
+		end
+	end
 end
 __gfx__
 000000000008880000088800000000000000000000000000ffff00000000ffff0000000000000000000000000000000000000000000000000000000000000000
@@ -853,13 +946,14 @@ __gfx__
 655555555555555600000000000000000000000000000000fffff011111002ff0000000000000000000000000000000000000000000000000000000000000000
 655555555555555600000000000000000000000000000000fffff010f01003ff0000000000000000000000000000000000000000000000000000000000000000
 655555555555555600000000000000000000000000000000ffffff00ff00f0ff0000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-66000000066000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-67600000067600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-67760000067760000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-66500000066500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-65000000065000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000066600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000006600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+66000000066000006666666066666600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+67600000067600000656560006565600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+67760000067760000656560006565600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+66500000066500000656560006565600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+65000000065000000656560006565600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000666660006666600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 __label__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
