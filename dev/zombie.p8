@@ -15,6 +15,7 @@ __lua__
 --splash page pixel art
 
 --◆fixes
+--fix message change animation
 --balance cards
 
 --◆extras
@@ -78,6 +79,7 @@ function timers()
 	fading=0
 	messaging=0
 	turning=0
+	animessage=0
 end
 
 function create_draw()
@@ -534,7 +536,7 @@ function game_messages()
 	elseif current.card.cost>surv then
 		messages={"+survivors to scavenge card"}
 	end
-	if turning>=600 then
+	if turning>=0 then
 		add(messages,"🅾️ attack horde and end turn")
 	end
 end
@@ -802,12 +804,18 @@ end
 function draw_message()
 	if messages!=nil and is_player_turn then
 		messaging+=1
+		local _lastmess=messi
 		if messaging>45 then
 			messi+=1
 			messi=(messi-1)%#messages+1
 			messaging=0
 		end
-		print(messages[messi],1,2,7)
+		if #messages>1 then
+			--animate message change
+			animate_messages(messages[_lastmess],messages[messi])
+		else
+			print(messages[messi],1,2,7)
+		end
 	end
 end
 
@@ -927,6 +935,21 @@ function draw_numbers()
 		if _v.life<=0 then
 			deli(numbers,_k)
 		end
+	end
+end
+-->8
+--animations
+
+function animate_messages(_pmess,_nmess)
+	if animessage<(12*30) then
+		animessage+=1
+		clip(0,1,120,8)
+		local _y=flr(animessage/30)
+		print(_pmess,1,2-_y,7)
+		print(_nmess,1,2-_y+7,7)
+		clip()	
+	else
+		animessage=0
 	end
 end
 __gfx__
