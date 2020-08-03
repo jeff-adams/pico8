@@ -7,7 +7,6 @@ __lua__
 --…………work items………………
 
 --◆juices
---animate message change
 --animate card movement
 --particles for trashing
 --animate turn end
@@ -15,7 +14,6 @@ __lua__
 --splash page pixel art
 
 --◆fixes
---turn counter
 --balance cards
 
 --◆extras
@@ -698,9 +696,6 @@ function draw_game()
 end
 
 function draw_outlines()
-	--screen top background
---	rectfill(0,0,127,22,5)
---	rectfill(0,14,36,22,0)
 	--hand/scavenge divider to box
 	line(60,24,60,96,5)
 	rect(0,96,127,104,5)
@@ -773,9 +768,13 @@ end
 
 function draw_horde()	
 	--draw turns meter
-	rectfill(1,9,113,13,5)
-	rectfill(2,10,112,12,8)
-	rectfill(2,10,112/20*turns,12,6)
+	local _xs,_xe=10,112
+	local _w=_xe-_xs
+	rectfill(_xs-1,9,_xe+1,13,5)
+	rectfill(_xs,10,_xe,12,8)
+	rectfill(_xs,10,_w/20*turns+_xs,12,6)
+	local _tx=turns<10 and 4 or 0
+	print(turns,_tx,9,5)
 	--draw horde count
 	--rectfill(110,13,124,22,5)
 	printo(horde,112,17,8,0)
