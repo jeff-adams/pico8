@@ -14,6 +14,7 @@ __lua__
 --splash page pixel art
 
 --◆fixes
+--turn end clip border
 --possible bug when trashing?
 --balance cards
 
@@ -356,6 +357,7 @@ end
 
 function end_turn()
 	attack_horde()
+	atking=0
 	change_state(update_turn,draw_turn)
 	is_player_turn=false
 	turns-=1
@@ -687,6 +689,7 @@ function draw_game()
 	draw_pile()
 	draw_scavenge()
 	draw_horde()
+	draw_turnmeter()
 	if current.card != nil then
 		draw_card_desc()
 		local _x=current.cards==hand and 0 or 62
@@ -768,14 +771,6 @@ function draw_scavenge()
 end
 
 function draw_horde()	
-	--draw turns meter
-	local _xs,_xe=10,112
-	local _w=_xe-_xs
-	rectfill(_xs-1,9,_xe+1,13,5)
-	rectfill(_xs,10,_xe,12,8)
-	rectfill(_xs,10,_w/20*turns+_xs,12,6)
-	local _tx=turns<10 and 4 or 0
-	print(turns,_tx,9,5)
 	--draw horde count
 	--rectfill(110,13,124,22,5)
 	printo(horde,112,17,8,0)
@@ -784,6 +779,16 @@ function draw_horde()
 	local _s=flr(time()/1.1)%2==0 and 6 or 8
 	spr(_s,111,1,2,2)
 	palt()
+end
+
+function draw_turnmeter()
+	local _xs,_xe=10,112
+	local _w=_xe-_xs
+	rectfill(_xs-1,9,_xe+1,13,5)
+	rectfill(_xs,10,_xe,12,8)
+	rectfill(_xs,10,_w/20*turns+_xs,12,6)
+	local _tx=turns<10 and 4 or 0
+	print(turns,_tx,9,5)
 end
 
 function draw_card_desc()
@@ -866,11 +871,25 @@ end
 
 function draw_turn()
 	draw_game()
-	draw_popup(56,0,6)
+	atking=atking and atking or 0
+	
+	if atking>=0 then
+		atking+=1
+		local _h=atking*2
+		--draw border first?
+		rectfill(0,64-_h-1,128,64+_h+1,6)
+		clip(0,64-_h,128,64+_h)
+		atking=_h>64 and -1 or atking
+	end
+		
+	--old popup
+--	draw_popup(56,0,6)
+	rectfill(0,0,128,128,0)
 	printc(turns.." turns remaining",40,12)
 	printc(horde.." zombies continue",58,8)
 	printc("to stumble toward you",64,8)
 	printc("❎ to continue",80,6)
+	draw_horde()
 end
 
 function draw_trash()
