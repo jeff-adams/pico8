@@ -9,7 +9,7 @@ __lua__
 --◆juices
 --animate card movement
 --particles for trashing
---animate turn end needs work
+--animate attack with player spr
 --sfx for attacking needs work
 --splash page pixel art
 
@@ -79,6 +79,7 @@ function timers()
 	messaging=0
 	turning=0
 	animessage=0
+	trashing=0
 end
 
 function create_draw()
@@ -302,7 +303,7 @@ local _fade,_c,_p={[0]=0,17,18,19,20,16,22,6,24,25,9,27,28,29,29,31,0,0,16,17,16
 end
 
 function win_check()
-	if horde<=0 then
+	if horde-atk<=0 then
 		sfx(5)
 		win=true
 		change_state(update_gameover,draw_gameover)
@@ -373,17 +374,16 @@ end
 function end_turn()
 	atking=0
 	change_state(update_turn,draw_turn)
-	freeze=time()+2
+	freeze=time()+1
 	change_state(update_freeze,draw_turn)
 	is_player_turn=false
 	turns-=1
-	win_check()
 	if win==nil then sfx(2) end
 end
 
 function attack_horde()
 	horde-=atk
-	add(numbers,{t="-"..atk,x=28,y=56,c=10,oc=0,life=45})
+	add(numbers,{t="-"..atk,x=28,y=56,c=6,oc=0,life=45})
 	sfx(9)
 end
 -->8
@@ -443,15 +443,15 @@ end
 function play_card(_card)
 	if _card.ctype=="survivor" then
 		surv+=_card.val
-		add(numbers,{t="+".._card.val,x=38,y=98,c=14,oc=0,life=30})
+		add(numbers,{t="+".._card.val,x=38,y=98,c=11,oc=0,life=30})
 		card_played(_card)
 	elseif _card.ctype=="weapon" then
 		atk+=_card.dmg
-		add(numbers,{t="+".._card.dmg,x=76,y=98,c=14,oc=0,life=30})
+		add(numbers,{t="+".._card.dmg,x=76,y=98,c=8,oc=0,life=30})
 		card_played(_card)
 	elseif acts>0 then
 		acts-=1
-		add(numbers,{t="-1",x=121,y=94,c=14,oc=0,life=30})
+		add(numbers,{t="-1",x=121,y=94,c=2,oc=0,life=30})
 		card_played(_card)
 		for _c in all(_card.actions) do
 			_c.action(_c.val)
@@ -602,8 +602,9 @@ end
 
 function update_turn()
 	if btnp(❎) then
+		sfx(8)	
 		change_state(update_game,draw_game)
-		sfx(8)
+		win_check()
 	end
 end
 
@@ -641,11 +642,14 @@ end
 
 function update_btnhold()
 	if btn(b.pressed) then
+		trashing+=1
 		if time()-b.start>=1 then
 			b.action()
+			trashing=0
 		end
 	else
 		sfx(-1)
+		trashing=0
 		previous_state()
 	end
 end
@@ -716,9 +720,12 @@ function draw_outlines()
 end
 
 function draw_stats()
-	print("survivors:"..surv,2,98,11)
-	print("attack:"..atk,52,98,8)
-	print("actions:"..acts,91,98,2)
+	print("survivors:",2,98,6)
+	print(surv,42,98,11)
+	print("attack:",52,98,6)
+	print(atk,80,98,8)
+	print("actions:"..acts,91,98,6)
+	print(acts,123,98,2)
 end
 
 function draw_hand()
@@ -733,8 +740,10 @@ function draw_hand()
 		local _o=showncards_start+i
 		local _card,_x=hand[_o],2
 		if current.sel==_o and current.cards==hand then
-			_x+=6
+			_x+=6-trashing
+			clip(_x+trashing,i*8+24,60,6)
 			print(_card.title,_x,i*8+24,12)
+			clip()
 		else
 			print(_card.title,_x,i*8+24,12)
 		end
@@ -775,6 +784,10 @@ function draw_horde()
 	--draw horde count
 	printo(horde,112,17,8,0)
 	--draw zombie
+	draw_zombie()
+end
+
+function draw_zombie()
 	palt(15)
 	local _s=flr(time()/1.1)%2==0 and 6 or 8
 	spr(_s,111,1,2,2)
@@ -886,7 +899,7 @@ function draw_turn()
 	printc(horde.." zombies continue",58,8)
 	printc("to stumble toward you",64,8)
 	printc("❎ to continue",80,6)
-	draw_horde()
+	draw_zombie()
 	draw_numbers()
 	
 	if atking<0 then
