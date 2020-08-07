@@ -7,14 +7,13 @@ __lua__
 --…………work items………………
 
 --◆juices
---animate card movement
---particles for trashing
+--animate card dealing
 --animate attack with player spr
 --sfx for attacking needs work
 --splash page pixel art
 
 --◆fixes
---possible bug when trashing?
+--trashing bug:current card?
 --balance cards
 
 --◆extras
@@ -303,7 +302,7 @@ local _fade,_c,_p={[0]=0,17,18,19,20,16,22,6,24,25,9,27,28,29,29,31,0,0,16,17,16
 end
 
 function win_check()
-	if horde-atk<=0 then
+	if horde<=0 then
 		sfx(5)
 		win=true
 		change_state(update_gameover,draw_gameover)
@@ -491,7 +490,7 @@ function card_selection(_dir)
 	_sel=((_sel+_dir-1)%#current.cards)+1
 	current.card=current.cards[_sel]
 	current.sel=_sel
-	sfx(0)
+	sfx(1)
 end
 
 function change_current_card()
@@ -555,14 +554,14 @@ function game_btns()
 		current.sel=1
 		showncards_start=0
 		current.card=scavenge[1]
-		sfx(1)
+		sfx(10)
 	end
 	if btnp(⬅️) and current.cards==scavenge and #hand>0 then
 		current.cards=hand
 		current.sel=1
 		showncards_start=0
 		current.card=hand[1]
-		sfx(1)
+		sfx(10)
 	end
 	if btnp(❎) then
 		if current.cards==hand then
@@ -1161,3 +1160,4 @@ __sfx__
 0008000012130101300d1301515017150000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00010000165501655019550195501b5501b5500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 000300002d6102d6102d6102a6103f6203f6203f62000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
+00020000257302273025730287301e700207002270000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700007000070000700
