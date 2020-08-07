@@ -13,7 +13,6 @@ __lua__
 --splash page pixel art
 
 --◆fixes
---trashing bug:current card?
 --balance cards
 
 --◆extras
@@ -24,8 +23,8 @@ __lua__
 function _init()
 	globals()
 	timers()
-	init_scavenge()
 	init_player()
+	init_scavenge()	
 	change_state(update_menu,draw_menu)
 end
 
@@ -46,28 +45,14 @@ end
 
 function globals()
 	shuffle_cards=shuffle
-	draw=shuffle_cards(create_draw())
-	deck=shuffle_cards(create_deck())
-	discard={}
-	hand={}
-	scavenge={}
-	trash={}
-	acts=0
-	surv=0
-	atk=0
 	turns=20
 	horde=200
-	current={card={},sel=1,cards=hand}
 	messages=nil
 	messi=1
-	is_player_turn=true
-	played={}
 	selector={frames={32,33},speed=4}
 	debug={}
-	win=nil
 	previous={update=update_menu,draw=draw_menu}
 	b={pressed=❎,start=0,action=nil}
-	showncards_start=0
 	cardicons={survivor=3,weapon=4,action=5}
 	numbers={}
 end
@@ -233,24 +218,29 @@ function enumerate_cards(_cards)
 end
 
 function init_scavenge()
+ scavenge={}
+ deck=shuffle_cards(create_deck())
  for i=1,7 do
  	refresh_scavenge()
  end
 end
 
 function init_player()
+	discard={}
+	hand={}
+	played={}
+	current={card={},sel=1,cards=hand}
+	draw=shuffle_cards(create_draw())
+	draw_cards(5)
 	acts=1
 	atk=0
 	surv=0
-	hand={}
-	current.card={}
-	draw_cards(5)
-	current.cards=hand
 	is_player_turn=true
-	showcards_start=0
+	win=nil
+	showncards_start=0
 end
 -->8
---logic
+--utilities
 
 function shuffle(objs)
 	for i=#objs,2,-1 do
@@ -301,18 +291,6 @@ local _fade,_c,_p={[0]=0,17,18,19,20,16,22,6,24,25,9,27,28,29,29,31,0,0,16,17,16
   end
 end
 
-function win_check()
-	if horde<=0 then
-		sfx(5)
-		win=true
-		change_state(update_gameover,draw_gameover)
-	elseif turns <=0 then
-		sfx(4)
-		win=false
-		change_state(update_gameover,draw_gameover)
-	end
-end
-
 function change_state(_update,_draw)
 	previous={update=update_state,draw=draw_state}
 	update_state=_update
@@ -322,16 +300,6 @@ end
 function previous_state()
 	local _p=previous
 	change_state(_p.update,_p.draw)
-end
-
-function cards_contain(_cards,_ctype)
-	local _result=false
-	for _c in all(_cards) do
-		if _c.ctype==_ctype then
-			_result=true
-		end
-	end
-	return _result
 end
 -->8
 --actions
@@ -363,11 +331,25 @@ function attack_action(_amount)
 end
 
 function trash_card()
-	del(hand,hand[current.sel])
+	deli(hand,current.sel)
 	if current.sel!=1 then
 		previous_card()
+	else
+		current.card=hand[current.sel]
 	end
 	previous_state()
+end
+
+function win_check()
+	if horde<=0 then
+		sfx(5)
+		win=true
+		change_state(update_gameover,draw_gameover)
+	elseif turns <=0 then
+		sfx(4)
+		win=false
+		change_state(update_gameover,draw_gameover)
+	end
 end
 
 function end_turn()
@@ -507,6 +489,16 @@ function change_current_card()
 	current.sel=_sel
 	current.card=current.cards[_sel]
 end
+
+function cards_contain(_cards,_ctype)
+	local _result=false
+	for _c in all(_cards) do
+		if _c.ctype==_ctype then
+			_result=true
+		end
+	end
+	return _result
+end
 -->8
 --update
 
@@ -635,7 +627,11 @@ end
 
 function update_gameover()
 	if btnp(❎) then
-		_init()
+		fadeout()
+		globals()
+		init_player()
+		init_scavenge()
+		change_state(update_menu,draw_menu)
 	end
 end
 
@@ -655,9 +651,9 @@ end
 
 function update_tutorial()
 	if btnp(🅾️) then
-		b={pressed=🅾️,start=time(),action=function() change_state(update_menu,draw_menu) end}
-		sfx(6)
-		change_state(update_btnhold,draw_tutorial)
+		sfx(8)
+		fadeout()
+		change_state(update_menu,draw_menu)
 	end
 end
 
