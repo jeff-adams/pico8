@@ -8,16 +8,15 @@ __lua__
 
 --◆juices
 --animate card dealing
---splash page pixel art
 
 --◆fixes
---way to refresh scavenge
---balance cards
 
 --◆extras
+--way to refresh scavenge
 --hard mode with events
 --dpad support
 --music
+--add more action cards
 
 function _init()
 	globals()
@@ -277,6 +276,7 @@ function printo(_text,_x,_y,_c,_oc)
 	print(_text,_x,_y,_c)
 end
 
+--function by dw817 on bbs
 function fadeout()
 local _fadespeed=4
 local _fade,_c,_p={[0]=0,17,18,19,20,16,22,6,24,25,9,27,28,29,29,31,0,0,16,17,16,16,5,0,2,4,0,3,1,18,2,4}
