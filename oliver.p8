@@ -1,0 +1,99 @@
+pico-8 cartridge // http://www.pico-8.com
+version 29
+__lua__
+function _init()
+	player={
+									s=1,
+									x=64,
+									y=112,
+									facing_left=true,
+									jumping=false,
+									falling=false,
+									origin_y=112
+								}
+	platforms={}
+	ground={s=2,xs=0,xe=120,y=120}
+	add(platforms,ground)
+end
+
+function _update()
+	movement()
+	jump()
+	falling()
+	grounded()
+end
+
+function _draw()
+	cls(12)
+	spr(player.s,player.x,player.y,1,1,player.facing_left)
+	
+	foreach(platforms,draw_platform)
+end
+-->8
+--update
+
+function movement()
+	if player.x<=0 then
+		player.facing_left=false
+	end
+	if player.x>=120 then
+		player.facing_left=true
+	end		
+	
+	if player.facing_left then
+		player.x-=1	
+	else
+		player.x+=1
+	end
+end
+
+function jump()
+	if player.jumping then
+		if player.y<=player.origin_y-12 then
+			player.jumping=false
+			player.falling=true
+		else
+			player.y-=1
+		end
+	elseif btnp(❎) then
+		player.jumping=true
+	end
+end
+
+function falling()
+	if player.falling then
+		player.y+=1
+	end
+end
+
+function grounded()
+	foreach(platforms,collision)
+	--returns true/false?
+end
+-->8
+--draw
+
+function draw_platform(p)
+	for i=p.xs,p.xe,8 do
+		spr(p.s,i,p.y)
+	end
+end
+-->8
+--logic
+
+function collision(p)
+	for i=0,7 do
+		if player.x+i==p.x+i then
+			return player.y+9==p.y
+		end
+	end
+end
+__gfx__
+0000000000e88800bbbbb3bb00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+000000000e8888204444444400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700088989804554444400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000e88888824444445400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000888888824454444400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700088888204444444400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000008002004444445500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000008802205444444400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
