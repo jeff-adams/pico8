@@ -618,7 +618,7 @@ function game_btns()
 			current.sel=1
 			change_state(update_confirm,draw_confirm)
 		elseif surv>=cheapest_card() then
-			cmessage="you still can scavenge"
+			cmessage="you can still scavenge"
 			current.sel=1
 			change_state(update_confirm,draw_confirm)
 		else
@@ -628,6 +628,7 @@ function game_btns()
 end
 
 function update_menu()
+	if music_playing and stat(24)<0 then music(0) end	
 	if btnp(⬆️) or btnp(⬇️) then
 		current.sel=current.sel==1 and 2 or 1
 		sfx(1)
@@ -843,7 +844,7 @@ end
 
 function draw_horde()	
 	--draw horde count
-	printo(horde,112,17,8,0)
+	printo(max(0,horde),112,17,8,0)
 	--draw zombie
 	draw_zombie()
 end
@@ -1024,7 +1025,7 @@ function draw_turn()
 		
 	rectfill(0,0,128,128,0)
 	printc(turns.." turns remaining",40,12)
-	printc(horde.." zombies continue",58,8)
+	printc(max(0,horde).." zombies continue",58,8)
 	printc("to stumble toward you",64,8)
 	if atk<1 or atking<-30 then 
 		printc("❎ to continue",80,6) 
@@ -1110,11 +1111,11 @@ function draw_popup(_h,_c,_oc)
 end
 
 function draw_confirm()	
-	draw_popup(40,0,9)
-	printc(cmessage,50,9)
-	print("return",42,62,5)
-	print("confirm end turn",42,70,5)
-	draw_selector(34,52,8)
+	draw_popup(40,0,5)
+	printc(cmessage,50,7)
+	print("return",42,64,6)
+	print("confirm end turn",42,72,8)
+	draw_selector(34,54,8)
 end
 
 function draw_numbers()
