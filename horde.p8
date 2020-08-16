@@ -14,7 +14,6 @@ __lua__
 
 --◆extras
 --hard mode with events?
---add more action cards
 
 function _init()
 	menuitem(3,"toggle music",toggle_music)
@@ -928,7 +927,7 @@ function draw_card_desc()
 end
 
 function draw_message()
-	if messages!=nil and is_player_turn then
+	if messages[1] and is_player_turn then
 		messaging+=1
 		local _nextmess=messages[messi]
 		--alternate messages
