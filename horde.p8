@@ -8,6 +8,9 @@ __lua__
 
 --◆juices
 --animate card movement
+--better zombie animation
+--player shooting animation
+--game over animation
 
 --◆fixes
 --background music?
@@ -41,8 +44,8 @@ end
 
 function globals()
 	shuffle_cards=shuffle
-	turns=20
-	horde=200
+	turns=1
+	horde=1
 	messages=nil
 	messi=1
 	selector={frames={32,33},speed=4}
@@ -402,10 +405,12 @@ end
 function win_check()
 	if horde<=0 then
 		sfx(5)
+		music(-1)
 		win=true
 		change_state(update_gameover,draw_gameover)
 	elseif turns <=0 then
 		sfx(4)
+		music(-1)
 		win=false
 		change_state(update_gameover,draw_gameover)
 	end
@@ -532,9 +537,11 @@ end
 function card_selection(_dir)
 	local _sel=current.sel
 	_sel=((_sel+_dir-1)%#current.cards)+1
+	change_lastcard(current.card)
 	current.card=current.cards[_sel]
 	current.sel=_sel
 	sfx(1)
+	carding=12
 end
 
 function change_current_card()
@@ -550,6 +557,12 @@ function change_current_card()
 	end
 	current.sel=_sel
 	current.card=current.cards[_sel]
+end
+
+function change_lastcard(_card)
+	lastcard=_card
+	lastcard.col1=current.cards==hand and 13 or 9
+	lastcard.col2=current.cards==hand and 12 or 10
 end
 
 function cards_contain(_cards,_ctype)
@@ -613,18 +626,22 @@ function game_btns()
 		previous_card()
 	end
 	if btnp(➡️) and current.cards==hand then
+		change_lastcard(current.card)
 		current.cards=scavenge
 		current.sel=1
 		showncards_start=0
 		current.card=scavenge[1]
 		sfx(10)
+		decking=100
 	end
 	if btnp(⬅️) and current.cards==scavenge and #hand>0 then
+		change_lastcard(current.card)
 		current.cards=hand
 		current.sel=1
 		showncards_start=0
 		current.card=hand[1]
 		sfx(10)
+		decking=-100
 	end
 	if btnp(❎) then
 		if current.cards==hand then
@@ -773,7 +790,7 @@ function draw_game()
 	draw_horde()
 	draw_turnmeter()
 	if current.card != nil then
-		draw_card_desc()
+		draw_card()
 		local _x=current.cards==hand and 0 or 62
 		draw_selector(_x,22,8,showncards_start)
 	end
@@ -785,13 +802,6 @@ function draw_outlines()
 	--hand/scavenge divider to box
 	line(60,24,60,96,5)
 	rect(0,96,127,104,5)
-	--top of card for description
-	line(8,106,120,106,6)
-	line(0,114,0,127,6)
-	line(127,114,127,127,6)
-	rectfill(1,107,126,127,5)
-	spr(16,0,106)
-	spr(17,120,106)
 	--nav buttons
 	print("⬅️  ➡️",49,88,5)
 end
@@ -880,11 +890,12 @@ function draw_horde()
 	draw_zombie()
 end
 
-function draw_zombie()
+function draw_zombie(_pos)
+	local _x=_pos and _pos or 111
 	palt(0,false)
 	palt(11,true)
 	local _s=flr(time()/1.1)%2==0 and 6 or 8
-	spr(_s,111,1,2,2)
+	spr(_s,_x,1,2,2)
 	palt()
 end
 
@@ -908,22 +919,52 @@ function draw_turnmeter()
 	print(turns,_tx,9,5)
 end
 
-function draw_card_desc()
-	local _card=current.card
+function draw_card()
+	local _dy=carding and carding or 0
+	local _dx=decking and decking or 0
 	local _col1=current.cards==hand and 13 or 9
 	local _col2=current.cards==hand and 12 or 10
-	print(_card.title,4,110,_col2)
-	print(_card.ctype,4,116,_col1)
+	if lastcard then
+		draw_card_desc(lastcard,0,0,lastcard.col1,lastcard.col2)
+	end	
+	draw_card_desc(current.card,_dx,_dy,_col1,_col2)
+	if decking then
+		if decking<0 then
+			decking=min(0,decking+10)
+		else
+			decking=max(0,decking-10)
+		end	
+	end
+	if carding and carding>0 then carding=max(0,carding-1) end
+end
+
+function draw_card_desc(_card,_dx,_dy,_col1,_col2)
+	--card background
+	draw_cardback(_dx,_dy)
+	--card stats
+	print(_card.title,4+_dx,110+_dy,_col2)
+	print(_card.ctype,4+_dx,116+_dy,_col1)
 	if _card.dmg != nil then
-		print("attack +".._card.dmg,4,122,_col1)
+		print("attack +".._card.dmg,4+_dx,122+_dy,_col1)
 	end
 	if _card.val != nil then
-		print("survivors +".._card.val,4,122,_col1)
+		print("survivors +".._card.val,4+_dx,122+_dy,_col1)
 	end
 	if _card.desc != nil then
-		print(_card.desc,4,122,_col1)
+		print(_card.desc,4+_dx,122+_dy,_col1)
 	end
-	print(_card.cost,118,110,11)
+	print(_card.cost,118+_dx,110+_dy,11)
+end
+
+function draw_cardback(_xo,_yo)
+	local _dy=_yo and _yo or 0
+	local _dx=_xo and _xo or 0
+	line(8+_dx,106+_dy,120+_dx,106+_dy,6)
+	line(0+_dx,114+_dy,0+_dx,127+_dy,6)
+	line(127+_dx,114+_dy,127+_dx,127+_dy,6)
+	rectfill(1+_dx,107+_dy,126+_dx,127+_dy,5)
+	spr(16,0+_dx,106+_dy)
+	spr(17,120+_dx,106+_dy)
 end
 
 function draw_message()
@@ -950,21 +991,26 @@ function draw_message()
 end
 
 function draw_gameover()
-	draw_game()
-	rectfill(26,33,96,78,0)
+	cls()
+	local _zx=4*turns+20
 	if win then
-		rect(25,32,97,79,11)
-		print("congratulations",32,35,11)
-		print("you have defeated",28,50,11)
-		print("the zombie horde!",28,58,11)
-		print("❎ main menu",37,70,5)
+		draw_player()
+		palt(11,true)
+		--dead zombie
+		spr(48,_zx,9,2,1)
+		pal()
+		print("congratulations",32,45,11)
+		print("you have defeated",28,60,11)
+		print("the zombie horde!",28,68,11)
+		print("❎ main menu",37,110,5)
 	else
-		rect(25,32,97,79,8)
-		print("game over man!",34,35,8)
-		print("the zombie horde",30,50,8)
-		print("has overrun you!",30,58,8)
-		print("❎ main menu",37,70,5)	
+		--zombie eating player
+		print("game over man!",34,45,8)
+		print("the zombie horde",30,60,8)
+		print("has overrun you!",30,68,8)
+		print("❎ main menu",37,110,5)	
 	end
+	pal()
 end
 
 function draw_debug()
@@ -1061,7 +1107,9 @@ function draw_turn()
 	if atk<1 or atking<-30 then 
 		printc("❎ to continue",80,6) 
 	end
-	draw_zombie()
+	
+	local _zx=4*turns+20
+	draw_zombie(_zx)
 	draw_player()
 	draw_numbers()
 	
@@ -1073,8 +1121,8 @@ function draw_turn()
 					sfx(11)
 			end
 			--bullet
-			local _bx,_by=min(16-atking*6,118),12
-			clip(0,0,118,20)
+			local _bx,_by=min(16-atking*6,_zx+7),12
+			clip(0,0,_zx+7,20)
 			line(_bx,_by,_bx+3,_by,7)
 			clip()
 			if atking==-30 then
@@ -1196,14 +1244,14 @@ __gfx__
 66500000066500000656560006565600bbbbbbbbbbbbbbbbbbb0ffffffffff000000000000000000000000000000000000000000000000000000000000000000
 65000000065000000656560006565600bbb566666666666bbbb00ffff00ffff00000000000000000000000000000000000000000000000000000000000000000
 000000000000000006666600066666004b45544444bbbbbbbbb00ffff00ffff00000000000000000000000000000000000000000000000000000000000000000
-000000000000000000000000000000004bbb5bbbbbbbbbbbbbb0ffffffffff0b0000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000bbbbbbbbbbbbbbbbbbbb0ffffffff0bb0000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000bbbbbbbbbbbbbbbbbbbbb00000000c0b0000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000bbbbbbbbbbbbbbbbbbbb0cccccccccc00000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000bbbbbbbbbbbbbbbbbbbb0f0ccccc00c00000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000bbbbbbbbbbbbbbbbbbbb000011110f0b0000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000bbbbbbbbbbbbbbbbbbbbbbb010b010bb0000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000bbbbbbbbbbbbbbbbbbbbbbbb00bb00bb0000000000000000000000000000000000000000000000000000000000000000
+bbbbbbbbbbbbbbbb00000000000000004bbb5bbbbbbbbbbbbbb0ffffffffff0b0000000000000000000000000000000000000000000000000000000000000000
+bbbbbbbbbbbbbbbb000003003333300bbbbbbbbbbbbbbbbbbbbb0ffffffff0bb0000000000000000000000000000000000000000000000000000000000000000
+bbbbbbbb800000bb0033448800000330bbbbbbbbbbbbbbbbbbbbb00000000c0b0000000000000000000000000000000000000000000000000000000000000000
+bbbbbbb88333330b0000004444444030bbbbbbbbbbbbbbbbbbbb0cccccccccc00000000000000000000000000000000000000000000000000000000000000000
+bb0000083663330b0bbbbbb011111000bbbbbbbbbbbbbbbbbbbb0f0ccccc00c00000000000000000000000000000000000000000000000000000000000000000
+b01003038663880b0bbbbbb010b010bbbbbbbbbbbbbbbbbbbbbb000011110f0b0000000000000000000000000000000000000000000000000000000000000000
+01103303383382bb0bbbbbbb00bb00bbbbbbbbbbbbbbbbbbbbbbbbb010b010bb0000000000000000000000000000000000000000000000000000000000000000
+00000030088008880000000000000000bbbbbbbbbbbbbbbbbbbbbbbb00bb00bb0000000000000000000000000000000000000000000000000000000000000000
 bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb000000000000000000000000000000000000000000000000
 bb8888bbbb888bbbbbb8888888888bbbbb8888888888bbbbbb888888888bbbbbbb88888888888bbb000000000000000000000000000000000000000000000000
 b8ee888bb88888bbbbee8888888888bbb8ee888888888bbbb8ee88888888bbbbb8ee8888888888bb000000000000000000000000000000000000000000000000
